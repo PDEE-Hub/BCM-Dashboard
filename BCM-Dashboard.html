@@ -3,6 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+(function(){
+  const key = 'bcm_auth';
+  const ok = localStorage.getItem(key);
+  if (!ok) {
+    document.addEventListener('DOMContentLoaded', function(){
+      document.getElementById('auth-gate').style.display = 'flex';
+      document.getElementById('app-shell').style.display = 'none';
+    });
+  }
+  window._checkAuth = function(){
+    const email = document.getElementById('auth-email').value.trim().toLowerCase();
+    const err = document.getElementById('auth-err');
+    if (!email) { err.textContent = 'กรุณากรอกอีเมล'; return; }
+    if (!email.endsWith('@port.co.th') && email !== 'palabordee.k@gmail.com') {
+      err.textContent = 'อนุญาตเฉพาะอีเมล @port.co.th เท่านั้น';
+      document.getElementById('auth-email').focus();
+      return;
+    }
+    localStorage.setItem(key, email);
+    document.getElementById('auth-gate').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+  };
+  window._logout = function(){
+    localStorage.removeItem(key);
+    location.reload();
+  };
+})();
+</script>
 <title>BCM Dashboard — กปอ. 2569</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -238,12 +267,33 @@ ul.list li b { color: var(--text); }
 </head>
 <body>
 
+<!-- Auth Gate -->
+<div id="auth-gate" style="display:none;position:fixed;inset:0;background:#0f1117;z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#1a1d27;border:1px solid #2e3347;border-radius:14px;padding:36px 32px;width:90%;max-width:380px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+    <div style="font-size:18px;font-weight:700;color:#e8eaf0;margin-bottom:4px;">BCM Dashboard</div>
+    <div style="font-size:12px;color:#8b90a0;margin-bottom:28px;">กปอ. — การท่าเรือแห่งประเทศไทย</div>
+    <input id="auth-email" type="email" placeholder="อีเมล @port.co.th"
+      style="width:100%;padding:11px 14px;background:#22263a;border:1px solid #2e3347;border-radius:8px;color:#e8eaf0;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;"
+      onkeydown="if(event.key==='Enter') _checkAuth()"
+      onfocus="this.style.borderColor='#4f8ef7'" onblur="this.style.borderColor='#2e3347'">
+    <div id="auth-err" style="color:#ef4444;font-size:12px;margin-top:8px;min-height:18px;"></div>
+    <button onclick="_checkAuth()"
+      style="margin-top:14px;width:100%;padding:11px;background:#4f8ef7;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+      เข้าสู่ระบบ
+    </button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app-shell">
 <div class="shell">
 <!-- Sidebar -->
 <nav class="sidebar">
   <div class="logo">
     <div class="logo-title">BCM กปอ.</div>
     <div class="logo-sub">ปีงบประมาณ 2569</div>
+    <div style="font-size:10px;color:#4f8ef7;margin-top:6px;cursor:pointer;" onclick="_logout()">🔓 ออกจากระบบ</div>
   </div>
   <div class="nav-item active" onclick="show('overview')"><span class="nav-icon">🏠</span> ภาพรวม BCM</div>
   <div class="nav-item" onclick="show('abbr')"><span class="nav-icon">📖</span> คำย่อทั้งหมด</div>
@@ -1429,6 +1479,15 @@ checklistData.forEach(group => {
 
 // init top threats panel
 renderTopThreats(null);
+
+// show app if already authed
+if (localStorage.getItem('bcm_auth')) {
+  const gate = document.getElementById('auth-gate');
+  const app  = document.getElementById('app-shell');
+  if (gate) gate.style.display = 'none';
+  if (app)  app.style.display  = 'flex';
+}
 </script>
+</div><!-- end app-shell -->
 </body>
 </html>
