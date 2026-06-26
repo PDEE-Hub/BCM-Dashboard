@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCM Dashboard — กปอ. 2569</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3347;
+  --text: #e8eaf0;
+  --muted: #8b90a0;
+  --accent: #4f8ef7;
+  --vl: #22c55e;
+  --l: #84cc16;
+  --m: #eab308;
+  --h: #f97316;
+  --e: #ef4444;
+  --font: 'IBM Plex Sans Thai', 'Sarabun', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; }
+
+/* Layout */
+.shell { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.main { flex: 1; padding: 28px 32px; max-width: 1100px; }
+
+/* Sidebar */
+.logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.logo-title { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .5px; }
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; cursor: pointer; color: var(--muted); font-size: 13px; transition: all .15s; border-left: 3px solid transparent; }
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: var(--accent); background: rgba(79,142,247,.08); border-left-color: var(--accent); }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-sep { height: 1px; background: var(--border); margin: 8px 20px; }
+
+/* Tabs / Sections */
+.section { display: none; }
+.section.active { display: block; }
+
+/* Back button */
+.back-btn { display: none; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; margin-bottom: 14px; width: fit-content; padding: 5px 10px; border-radius: 6px; transition: all .15s; border: 1px solid var(--border); background: var(--surface); }
+.back-btn:hover { color: var(--text); border-color: var(--accent); }
+.back-btn.visible { display: flex; }
+
+/* Header */
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: var(--text); }
+.page-sub { color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+.card-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+
+/* Abbreviation chips */
+.abbr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.abbr-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
+.abbr-card:hover { border-color: var(--accent); }
+.abbr-key { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
+.abbr-full { font-size: 12px; color: var(--text); margin-top: 2px; }
+.abbr-th { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+/* BCM Flow */
+.flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 16px 0; }
+.flow-step { flex: 1; min-width: 140px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 14px; position: relative; cursor: pointer; transition: all .15s; text-align: center; }
+.flow-step:hover { border-color: var(--accent); background: rgba(79,142,247,.06); }
+.flow-step.active-step { border-color: var(--accent); background: rgba(79,142,247,.1); }
+.flow-arrow { display: flex; align-items: center; padding: 0 6px; color: var(--muted); font-size: 18px; }
+.flow-num { font-size: 10px; color: var(--muted); }
+.flow-abbr { font-size: 20px; font-weight: 800; color: var(--accent); margin: 4px 0; }
+.flow-name { font-size: 11px; color: var(--text); }
+.flow-desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* Risk Matrix */
+.matrix-wrap { overflow-x: auto; }
+.matrix-layout { display: flex; gap: 16px; align-items: flex-start; }
+.matrix-left { flex-shrink: 0; }
+.matrix-right { flex: 1; min-width: 0; }
+.top-threat-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 10px; border-radius: 6px; cursor: pointer; transition: background .12s; border-bottom: 1px solid rgba(255,255,255,.04); }
+.top-threat-item:last-child { border-bottom: none; }
+.top-threat-item:hover { background: var(--surface2); }
+.top-threat-item.hidden { display: none; }
+.top-threat-num { font-size: 10px; color: var(--muted); min-width: 20px; padding-top: 2px; }
+.top-threat-name { font-size: 12px; color: var(--text); flex: 1; line-height: 1.4; }
+.top-threat-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.top-threat-new { font-size: 9px; background: rgba(234,179,8,.2); color: var(--m); padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+.panel-section-hdr { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 6px 10px 4px; margin-top: 4px; }
+@media (max-width: 900px) {
+  .matrix-layout { flex-direction: column; }
+  .matrix-right { width: 100%; }
+}
+.matrix { border-collapse: collapse; }
+.matrix td, .matrix th { width: 68px; height: 52px; text-align: center; font-size: 12px; font-weight: 700; border: 2px solid var(--bg); border-radius: 4px; cursor: pointer; transition: transform .1s; }
+.matrix td:hover { transform: scale(1.08); z-index: 10; position: relative; }
+.matrix .row-label { background: var(--surface2); color: var(--muted); font-size: 11px; width: 90px; }
+.matrix .col-label { background: var(--surface2); color: var(--muted); font-size: 11px; }
+.risk-VL { background: rgba(34,197,94,.25); color: var(--vl); }
+.risk-L { background: rgba(132,204,22,.25); color: var(--l); }
+.risk-M { background: rgba(234,179,8,.25); color: var(--m); }
+.risk-H { background: rgba(249,115,22,.25); color: var(--h); }
+.risk-E { background: rgba(239,68,68,.25); color: var(--e); }
+.risk-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.badge-VL { background: rgba(34,197,94,.2); color: var(--vl); }
+.badge-L { background: rgba(132,204,22,.2); color: var(--l); }
+.badge-M { background: rgba(234,179,8,.2); color: var(--m); }
+.badge-H { background: rgba(249,115,22,.2); color: var(--h); }
+.badge-E { background: rgba(239,68,68,.2); color: var(--e); }
+
+/* Scale table */
+.scale-table { width: 100%; border-collapse: collapse; }
+.scale-table th, .scale-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 12px; }
+.scale-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.scale-num { font-weight: 700; font-size: 16px; }
+
+/* Threat table */
+.threat-table { width: 100%; border-collapse: collapse; }
+.threat-table th { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--muted); }
+.threat-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 12px; vertical-align: top; }
+.threat-table tr:hover td { background: var(--surface2); }
+.threat-num { color: var(--muted); font-size: 11px; }
+
+/* Scenario cards */
+.scenario-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.scenario-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; cursor: pointer; transition: border-color .15s; }
+.scenario-card:hover { border-color: var(--accent); }
+.scenario-num { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+.scenario-icon { font-size: 28px; margin: 6px 0; }
+.scenario-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.scenario-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* BIA forms */
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.form-card { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 14px; }
+.form-num { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; }
+.form-title { font-size: 13px; font-weight: 700; color: var(--text); margin: 4px 0; }
+.form-desc { font-size: 12px; color: var(--muted); }
+.form-fields { margin-top: 8px; }
+.field-tag { display: inline-block; background: rgba(79,142,247,.15); color: var(--accent); border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700; margin: 2px 2px 2px 0; cursor: pointer; }
+.field-tag:hover { background: rgba(79,142,247,.3); }
+
+/* Metrics */
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin: 12px 0; }
+.metric-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.metric-abbr { font-size: 22px; font-weight: 800; color: var(--accent); }
+.metric-full { font-size: 11px; color: var(--text); margin: 3px 0; }
+.metric-def { font-size: 11px; color: var(--muted); }
+.metric-value { font-size: 12px; color: var(--m); margin-top: 6px; font-weight: 600; }
+
+/* Q&A Checklist */
+.cl-group { margin-bottom: 20px; }
+.cl-group-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text); padding: 10px 14px; background: var(--surface2); border-radius: 8px 8px 0 0; border: 1px solid var(--border); border-bottom: none; }
+.cl-group-icon { font-size: 16px; }
+.cl-group-count { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 400; }
+.qa-item { background: var(--surface); border: 1px solid var(--border); border-top: none; }
+.qa-item:last-child { border-radius: 0 0 8px 8px; }
+.qa-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; transition: background .1s; user-select: none; }
+.qa-header:hover { background: rgba(255,255,255,.03); }
+.qa-checkbox { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.qa-num { font-size: 11px; color: var(--muted); font-weight: 600; min-width: 24px; }
+.qa-question { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; }
+.qa-done-tag { display: none; font-size: 10px; color: var(--vl); background: rgba(34,197,94,.15); padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.qa-arrow { color: var(--muted); font-size: 12px; transition: transform .2s; flex-shrink: 0; }
+.qa-item.open .qa-arrow { transform: rotate(90deg); }
+.qa-item.done .qa-question { color: var(--muted); }
+.qa-item.done .qa-done-tag { display: inline-block; }
+.qa-body { display: none; padding: 0 14px 14px 53px; }
+.qa-item.open .qa-body { display: block; }
+.qa-block { margin-top: 10px; }
+.qa-block-label { font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; margin-bottom: 5px; }
+.qa-answer { background: rgba(79,142,247,.09); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 9px 12px; font-size: 13px; color: var(--text); line-height: 1.6; }
+.qa-training { background: rgba(234,179,8,.07); border-left: 3px solid var(--m); border-radius: 0 6px 6px 0; padding: 9px 12px; font-size: 12px; color: var(--text); line-height: 1.6; }
+.qa-note { background: rgba(34,197,94,.07); border-left: 3px solid var(--vl); border-radius: 0 6px 6px 0; padding: 9px 12px; font-size: 12px; color: var(--text); line-height: 1.6; }
+.qa-docs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.qa-doc { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 3px 9px; font-size: 11px; color: var(--muted); }
+.qa-doc-link { background: rgba(79,142,247,.1); border: 1px solid rgba(79,142,247,.3); border-radius: 4px; padding: 3px 9px; font-size: 11px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: background .15s; }
+.qa-doc-link:hover { background: rgba(79,142,247,.22); }
+/* Progress */
+.progress-bar { background: var(--surface2); border-radius: 999px; height: 8px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #6ee7f7); border-radius: 999px; transition: width .4s; }
+.progress-label { font-size: 13px; color: var(--text); font-weight: 500; }
+.progress-pct { font-size: 22px; font-weight: 700; color: var(--accent); }
+
+/* Tooltip modal */
+.tooltip-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+.tooltip-modal.show { display: flex; }
+.tooltip-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; max-width: 400px; width: 90%; }
+.tooltip-key { font-size: 32px; font-weight: 800; color: var(--accent); }
+.tooltip-full { font-size: 15px; color: var(--text); margin: 6px 0 2px; }
+.tooltip-th { font-size: 13px; color: var(--muted); }
+.tooltip-body { font-size: 13px; color: var(--text); margin-top: 14px; line-height: 1.7; }
+.tooltip-close { float: right; cursor: pointer; color: var(--muted); font-size: 20px; line-height: 1; }
+
+/* Matrix info box */
+.matrix-info { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-top: 14px; font-size: 13px; min-height: 50px; }
+.matrix-info b { color: var(--accent); }
+
+/* Tags */
+.tag { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 11px; background: var(--surface2); color: var(--muted); margin: 1px; }
+
+/* Misc */
+ul.list { padding-left: 18px; }
+ul.list li { margin-bottom: 4px; font-size: 13px; color: var(--muted); }
+ul.list li b { color: var(--text); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* ── Mobile bottom nav ── */
+.mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); z-index: 50; padding: 0; }
+.mobile-nav-inner { display: flex; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.mobile-nav-inner::-webkit-scrollbar { display: none; }
+.mnav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 14px; cursor: pointer; color: var(--muted); font-size: 10px; white-space: nowrap; flex-shrink: 0; transition: color .15s; border-top: 2px solid transparent; }
+.mnav-item:active, .mnav-item.active { color: var(--accent); border-top-color: var(--accent); }
+.mnav-icon { font-size: 18px; }
+@media (max-width: 768px) {
+  .two-col, .scenario-grid, .form-grid { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 16px 14px 80px; }
+  .page-title { font-size: 18px; }
+  .mobile-nav { display: block; }
+  .matrix td, .matrix th { width: 52px; height: 44px; font-size: 11px; }
+  .matrix .row-label { width: 70px; font-size: 10px; }
+  .matrix .col-label { font-size: 10px; }
+  .abbr-grid { grid-template-columns: 1fr 1fr; }
+  .flow { flex-direction: column; gap: 6px; }
+  .flow-arrow { display: none; }
+  .metric-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .abbr-grid { grid-template-columns: 1fr; }
+  .metric-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-title">BCM กปอ.</div>
+    <div class="logo-sub">ปีงบประมาณ 2569</div>
+  </div>
+  <div class="nav-item active" onclick="show('overview')"><span class="nav-icon">🏠</span> ภาพรวม BCM</div>
+  <div class="nav-item" onclick="show('abbr')"><span class="nav-icon">📖</span> คำย่อทั้งหมด</div>
+  <div class="nav-sep"></div>
+  <div class="nav-item" onclick="show('ra')"><span class="nav-icon">⚠️</span> RA วิเคราะห์ความเสี่ยง</div>
+  <div class="nav-item" onclick="show('bia')"><span class="nav-icon">📊</span> BIA ผลกระทบธุรกิจ</div>
+  <div class="nav-item" onclick="show('bcp')"><span class="nav-icon">📋</span> BCP แผนรับมือ</div>
+  <div class="nav-sep"></div>
+  <div class="nav-item" onclick="show('checklist')"><span class="nav-icon">✅</span> Internal Audit</div>
+</nav>
+
+<!-- Main -->
+<main class="main">
+
+<!-- ========== OVERVIEW ========== -->
+<section id="sec-overview" class="section active">
+  <div class="page-header">
+    <div class="page-title">ระบบ BCM ของ กปอ.</div>
+    <div class="page-sub">Business Continuity Management — กองประเมินผลองค์กร | ISO 22301</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">กระบวนการ BCM — ทำอะไร เรียงอะไร</div>
+    <div class="flow">
+      <div class="flow-step" onclick="show('ra')">
+        <div class="flow-num">ขั้นที่ 1</div>
+        <div class="flow-abbr">RA</div>
+        <div class="flow-name">Risk Analysis</div>
+        <div class="flow-desc">ระบุภัยคุกคาม + ให้คะแนนโอกาสและผลกระทบ</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" onclick="show('bia')">
+        <div class="flow-num">ขั้นที่ 2</div>
+        <div class="flow-abbr">BIA</div>
+        <div class="flow-name">Business Impact Analysis</div>
+        <div class="flow-desc">ระบุกิจกรรมสำคัญ (CBF) + กำหนด RTO/RPO/MTPD</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" onclick="show('bcp')">
+        <div class="flow-num">ขั้นที่ 3</div>
+        <div class="flow-abbr">BCP</div>
+        <div class="flow-name">Business Continuity Plan</div>
+        <div class="flow-desc">จัดทำแผนรับมือ + Call Tree + ทีมสำรอง</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" onclick="show('checklist')">
+        <div class="flow-num">ขั้นที่ 4</div>
+        <div class="flow-abbr">IA</div>
+        <div class="flow-name">Internal Audit</div>
+        <div class="flow-desc">ตรวจสอบ 27 หัวข้อ + ปรับปรุงปีถัดไป</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">4 สถานการณ์วิกฤต (Scenarios)</div>
+      <ul class="list">
+        <li><b>สถานการณ์ 1</b> — การให้บริการท่าเรือหยุดชะงัก</li>
+        <li><b>สถานการณ์ 2</b> — พนักงานเข้าทำงานไม่ได้</li>
+        <li><b>สถานการณ์ 3</b> — ระบบ IT ใช้ไม่ได้</li>
+        <li><b>สถานการณ์ 4</b> — โรคระบาดใหญ่</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">ระดับความเสี่ยง 5 ระดับ</div>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:10px;"><span class="risk-badge badge-VL">VL</span><span style="font-size:12px;">Very Low — ต่ำมาก ไม่ต้องเร่งดำเนินการ</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span class="risk-badge badge-L">L</span><span style="font-size:12px;">Low — ต่ำ ติดตามต่อเนื่อง</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span class="risk-badge badge-M">M</span><span style="font-size:12px;">Medium — ปานกลาง ต้องมีแผนรับมือ</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span class="risk-badge badge-H">H</span><span style="font-size:12px;">High — สูง ต้องจัดการเร่งด่วน</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span class="risk-badge badge-E">E</span><span style="font-size:12px;">Extreme — สูงมาก ต้องมีแผน BCP ทันที</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">กระบวนการ BCM ทั้ง 7 ขั้น (ISO 22301 Framework)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid #6366f1;">
+        <div style="font-size:10px;color:#6366f1;font-weight:700;margin-bottom:3px;">PM — ขั้นที่ 1</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Project Management</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">จัดโครงสร้างคณะทำงาน นโยบาย งบประมาณ และอบรม</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid var(--h);">
+        <div style="font-size:10px;color:var(--h);font-weight:700;margin-bottom:3px;">RA — ขั้นที่ 2</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Risk Assessment</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">วิเคราะห์ภัยคุกคาม โอกาสเกิด ผลกระทบ</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid var(--accent);">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:3px;">BIA — ขั้นที่ 3</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Business Impact Analysis</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">ระบุ CBF กำหนด RTO/RPO/MTPD</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid #22d3ee;">
+        <div style="font-size:10px;color:#22d3ee;font-weight:700;margin-bottom:3px;">RS — ขั้นที่ 4</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Recovery Strategy</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">กำหนดกลยุทธ์กู้คืน ทางเลือกสำรอง</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid var(--vl);">
+        <div style="font-size:10px;color:var(--vl);font-weight:700;margin-bottom:3px;">PD — ขั้นที่ 5</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Plan Development</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">เขียนแผน BCP อย่างเป็นทางการ</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid var(--m);">
+        <div style="font-size:10px;color:var(--m);font-weight:700;margin-bottom:3px;">TE — ขั้นที่ 6</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Testing & Exercising</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">ทดสอบ Call Tree + Advance Exercise</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:11px 12px;border-top:3px solid #a78bfa;">
+        <div style="font-size:10px;color:#a78bfa;font-weight:700;margin-bottom:3px;">PM — ขั้นที่ 7</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">Program Management</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">สร้างวัฒนธรรม BCM ต่อเนื่อง IA ทุกปี</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">คำย่อหลักที่ต้องรู้ — คลิกเพื่อดูรายละเอียด</div>
+    <div class="abbr-grid">
+      <div class="abbr-card" onclick="openAbbr('BCM')"><div class="abbr-key">BCM</div><div class="abbr-full">Business Continuity Management</div><div class="abbr-th">การบริหารความต่อเนื่องทางธุรกิจ</div></div>
+      <div class="abbr-card" onclick="openAbbr('BCP')"><div class="abbr-key">BCP</div><div class="abbr-full">Business Continuity Plan</div><div class="abbr-th">แผนรองรับการดำเนินธุรกิจอย่างต่อเนื่อง</div></div>
+      <div class="abbr-card" onclick="openAbbr('BIA')"><div class="abbr-key">BIA</div><div class="abbr-full">Business Impact Analysis</div><div class="abbr-th">การวิเคราะห์ผลกระทบทางธุรกิจ</div></div>
+      <div class="abbr-card" onclick="openAbbr('RA')"><div class="abbr-key">RA</div><div class="abbr-full">Risk Analysis</div><div class="abbr-th">การวิเคราะห์ความเสี่ยง</div></div>
+      <div class="abbr-card" onclick="openAbbr('CBF')"><div class="abbr-key">CBF</div><div class="abbr-full">Critical Business Function</div><div class="abbr-th">กิจกรรมทางธุรกิจที่สำคัญ</div></div>
+      <div class="abbr-card" onclick="openAbbr('RTO')"><div class="abbr-key">RTO</div><div class="abbr-full">Recovery Time Objective</div><div class="abbr-th">เวลาเป้าหมายในการกู้คืน</div></div>
+      <div class="abbr-card" onclick="openAbbr('RPO')"><div class="abbr-key">RPO</div><div class="abbr-full">Recovery Point Objective</div><div class="abbr-th">จุดข้อมูลเป้าหมายในการกู้คืน</div></div>
+      <div class="abbr-card" onclick="openAbbr('MTPD')"><div class="abbr-key">MTPD</div><div class="abbr-full">Maximum Tolerable Period of Disruption</div><div class="abbr-th">ระยะเวลาสูงสุดที่ยอมรับได้ของการหยุดชะงัก</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== ABBR ========== -->
+<section id="sec-abbr" class="section">
+  <div id="back-abbr" class="back-btn" onclick="goBack()">← ย้อนกลับ</div>
+  <div class="page-header">
+    <div class="page-title">คำย่อทั้งหมด</div>
+    <div class="page-sub">คลิกที่การ์ดเพื่อดูคำอธิบายแบบเต็ม</div>
+  </div>
+  <div class="abbr-grid">
+    <div class="abbr-card" onclick="openAbbr('BCM')"><div class="abbr-key">BCM</div><div class="abbr-full">Business Continuity Management</div><div class="abbr-th">การบริหารความต่อเนื่องทางธุรกิจ</div></div>
+    <div class="abbr-card" onclick="openAbbr('BCP')"><div class="abbr-key">BCP</div><div class="abbr-full">Business Continuity Plan</div><div class="abbr-th">แผนรองรับการดำเนินธุรกิจอย่างต่อเนื่อง</div></div>
+    <div class="abbr-card" onclick="openAbbr('BIA')"><div class="abbr-key">BIA</div><div class="abbr-full">Business Impact Analysis</div><div class="abbr-th">การวิเคราะห์ผลกระทบทางธุรกิจ</div></div>
+    <div class="abbr-card" onclick="openAbbr('RA')"><div class="abbr-key">RA</div><div class="abbr-full">Risk Analysis</div><div class="abbr-th">การวิเคราะห์ความเสี่ยง</div></div>
+    <div class="abbr-card" onclick="openAbbr('CBF')"><div class="abbr-key">CBF</div><div class="abbr-full">Critical Business Function</div><div class="abbr-th">กิจกรรมทางธุรกิจที่สำคัญ</div></div>
+    <div class="abbr-card" onclick="openAbbr('RTO')"><div class="abbr-key">RTO</div><div class="abbr-full">Recovery Time Objective</div><div class="abbr-th">เวลาเป้าหมายในการกู้คืนระบบ</div></div>
+    <div class="abbr-card" onclick="openAbbr('RPO')"><div class="abbr-key">RPO</div><div class="abbr-full">Recovery Point Objective</div><div class="abbr-th">จุดข้อมูลเป้าหมายในการกู้คืน</div></div>
+    <div class="abbr-card" onclick="openAbbr('MTPD')"><div class="abbr-key">MTPD</div><div class="abbr-full">Maximum Tolerable Period of Disruption</div><div class="abbr-th">ระยะเวลาสูงสุดที่ยอมรับได้ของการหยุดชะงัก</div></div>
+    <div class="abbr-card" onclick="openAbbr('MAC')"><div class="abbr-key">MAC</div><div class="abbr-full">Minimum Activity Criteria</div><div class="abbr-th">เกณฑ์กิจกรรมขั้นต่ำที่ยังต้องดำเนินการ</div></div>
+    <div class="abbr-card" onclick="openAbbr('SLA')"><div class="abbr-key">SLA</div><div class="abbr-full">Service Level Agreement</div><div class="abbr-th">ข้อตกลงระดับการให้บริการ</div></div>
+    <div class="abbr-card" onclick="openAbbr('ISO22301')"><div class="abbr-key">ISO 22301</div><div class="abbr-full">International Standard for BCM</div><div class="abbr-th">มาตรฐานสากลระบบการบริหารความต่อเนื่องทางธุรกิจ</div></div>
+    <div class="abbr-card" onclick="openAbbr('CAR')"><div class="abbr-key">CAR</div><div class="abbr-full">Corrective Action Request</div><div class="abbr-th">คำขอดำเนินการแก้ไข (จากผู้ตรวจภายนอก)</div></div>
+    <div class="abbr-card" onclick="openAbbr('OFI')"><div class="abbr-key">OFI</div><div class="abbr-full">Opportunity For Improvement</div><div class="abbr-th">โอกาสในการปรับปรุง (ข้อเสนอแนะจากผู้ตรวจ)</div></div>
+    <div class="abbr-card" onclick="openAbbr('กปอ')"><div class="abbr-key">กปอ.</div><div class="abbr-full">—</div><div class="abbr-th">กองประเมินผลองค์กร</div></div>
+    <div class="abbr-card" onclick="openAbbr('กทท')"><div class="abbr-key">กทท.</div><div class="abbr-full">PAT — Port Authority of Thailand</div><div class="abbr-th">การท่าเรือแห่งประเทศไทย</div></div>
+    <div class="abbr-card" onclick="openAbbr('IA')"><div class="abbr-key">IA</div><div class="abbr-full">Internal Audit</div><div class="abbr-th">การตรวจประเมินภายใน</div></div>
+  </div>
+</section>
+
+<!-- ========== RA ========== -->
+<section id="sec-ra" class="section">
+  <div id="back-ra" class="back-btn" onclick="goBack()">← ย้อนกลับ</div>
+  <div class="page-header">
+    <div class="page-title">RA — การวิเคราะห์ความเสี่ยง</div>
+    <div class="page-sub">Risk Analysis | รหัสเอกสาร กทท.–TP–RA | Version 2569-01</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4 ขั้นตอนการทำ RA</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--accent);">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;">ขั้นที่ 1</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">ระบุภัยคุกคาม</div>
+        <div style="font-size:11px;color:var(--muted);">ดูรายการ 23 ภัยคุกคาม + เพิ่มเติมได้ถ้ามี</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--accent);">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;">ขั้นที่ 2</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">ให้คะแนนโอกาสเกิด</div>
+        <div style="font-size:11px;color:var(--muted);">1–5 ตาม Scale A (ดูด้านล่าง)</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--accent);">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;">ขั้นที่ 3</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">ให้คะแนนผลกระทบ</div>
+        <div style="font-size:11px;color:var(--muted);">5 ด้าน คะแนน 1–5 ตาม Scale B</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;border-left:3px solid var(--accent);">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;">ขั้นที่ 4</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">ระบุแนวทางรับมือ</div>
+        <div style="font-size:11px;color:var(--muted);">เขียนแผน/มาตรการ หรืออ้างคำสั่ง กทท.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- Scale A -->
+    <div class="card">
+      <div class="card-title">Scale A — โอกาสเกิด (Likelihood)</div>
+      <table class="scale-table">
+        <tr><th>คะแนน</th><th>ระดับ</th><th>ความหมาย</th></tr>
+        <tr><td><span class="scale-num" style="color:var(--vl)">1</span></td><td><span class="risk-badge badge-VL">ต่ำมาก</span></td><td style="color:var(--muted)">เกิด 0 ครั้ง / จะเกิดในอีก 5 ปี+</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--l)">2</span></td><td><span class="risk-badge badge-L">ต่ำ</span></td><td style="color:var(--muted)">เกิด 1 ครั้ง / จะเกิดใน 2–3 ปี</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--m)">3</span></td><td><span class="risk-badge badge-M">ปานกลาง</span></td><td style="color:var(--muted)">เกิด 2 ครั้ง / จะเกิดใน 1–2 ปี</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--h)">4</span></td><td><span class="risk-badge badge-H">สูง</span></td><td style="color:var(--muted)">เกิด 3 ครั้ง / จะเกิดใน 6 เดือน–1 ปี</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--e)">5</span></td><td><span class="risk-badge badge-E">สูงมาก</span></td><td style="color:var(--muted)">เกิด 3+ ครั้ง / จะเกิดใน 1–6 เดือน</td></tr>
+      </table>
+    </div>
+    <!-- Scale B -->
+    <div class="card">
+      <div class="card-title">Scale B — ผลกระทบ (Impact) 5 ด้าน</div>
+      <div style="margin-bottom:8px;font-size:12px;color:var(--muted);">ประเมิน 5 ด้าน ได้แก่: <span class="tag">การปฏิบัติงาน</span> <span class="tag">ลูกค้า</span> <span class="tag">การเงิน</span> <span class="tag">ความปลอดภัย</span> <span class="tag">ชื่อเสียง</span></div>
+      <table class="scale-table">
+        <tr><th>คะแนน</th><th>ระดับ</th><th>ตัวอย่าง (ด้านการเงิน)</th></tr>
+        <tr><td><span class="scale-num" style="color:var(--vl)">1</span></td><td><span class="risk-badge badge-VL">ต่ำมาก</span></td><td style="color:var(--muted)">ไม่สูญเสียรายได้เลย</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--l)">2</span></td><td><span class="risk-badge badge-L">ต่ำ</span></td><td style="color:var(--muted)">ลูกค้ามีค่าใช้จ่ายเพิ่มเติม</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--m)">3</span></td><td><span class="risk-badge badge-M">ปานกลาง</span></td><td style="color:var(--muted)">รายได้ล่าช้า แต่ยอมรับได้</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--h)">4</span></td><td><span class="risk-badge badge-H">สูง</span></td><td style="color:var(--muted)">รายได้ล่าช้า จำนวนสูง &gt;10 ล้าน</td></tr>
+        <tr><td><span class="scale-num" style="color:var(--e)">5</span></td><td><span class="risk-badge badge-E">สูงมาก</span></td><td style="color:var(--muted)">สูญรายได้เฉลี่ย 3 ชม. ลูกค้าไปใช้ที่อื่น</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Risk Matrix — คลิกช่องเพื่อดูความหมาย + กรองภัยคุกคาม</div>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <tr>
+          <th class="row-label">โอกาสเกิด ↓ / ผลกระทบ →</th>
+          <th class="col-label">1 ต่ำมาก</th>
+          <th class="col-label">2 ต่ำ</th>
+          <th class="col-label">3 ปานกลาง</th>
+          <th class="col-label">4 สูง</th>
+          <th class="col-label">5 สูงมาก</th>
+        </tr>
+        <tr>
+          <td class="row-label">5 สูงมาก<br><span style="font-size:10px;color:var(--muted)">(Almost certain)</span></td>
+          <td class="risk-L" onclick="showMatrix('L','5','1')">L</td>
+          <td class="risk-H" onclick="showMatrix('H','5','2')">H</td>
+          <td class="risk-H" onclick="showMatrix('H','5','3')">H</td>
+          <td class="risk-E" onclick="showMatrix('E','5','4')">E</td>
+          <td class="risk-E" onclick="showMatrix('E','5','5')">E</td>
+        </tr>
+        <tr>
+          <td class="row-label">4 สูง<br><span style="font-size:10px;color:var(--muted)">(Likely)</span></td>
+          <td class="risk-L" onclick="showMatrix('L','4','1')">L</td>
+          <td class="risk-M" onclick="showMatrix('M','4','2')">M</td>
+          <td class="risk-H" onclick="showMatrix('H','4','3')">H</td>
+          <td class="risk-H" onclick="showMatrix('H','4','4')">H</td>
+          <td class="risk-E" onclick="showMatrix('E','4','5')">E</td>
+        </tr>
+        <tr>
+          <td class="row-label">3 ปานกลาง<br><span style="font-size:10px;color:var(--muted)">(Possible)</span></td>
+          <td class="risk-VL" onclick="showMatrix('VL','3','1')">VL</td>
+          <td class="risk-L" onclick="showMatrix('L','3','2')">L</td>
+          <td class="risk-M" onclick="showMatrix('M','3','3')">M</td>
+          <td class="risk-H" onclick="showMatrix('H','3','4')">H</td>
+          <td class="risk-H" onclick="showMatrix('H','3','5')">H</td>
+        </tr>
+        <tr>
+          <td class="row-label">2 ต่ำ<br><span style="font-size:10px;color:var(--muted)">(Unlikely)</span></td>
+          <td class="risk-VL" onclick="showMatrix('VL','2','1')">VL</td>
+          <td class="risk-L" onclick="showMatrix('L','2','2')">L</td>
+          <td class="risk-L" onclick="showMatrix('L','2','3')">L</td>
+          <td class="risk-M" onclick="showMatrix('M','2','4')">M</td>
+          <td class="risk-H" onclick="showMatrix('H','2','5')">H</td>
+        </tr>
+        <tr>
+          <td class="row-label">1 ต่ำมาก<br><span style="font-size:10px;color:var(--muted)">(Rare)</span></td>
+          <td class="risk-VL" onclick="showMatrix('VL','1','1')">VL</td>
+          <td class="risk-VL" onclick="showMatrix('VL','1','2')">VL</td>
+          <td class="risk-VL" onclick="showMatrix('VL','1','3')">VL</td>
+          <td class="risk-L" onclick="showMatrix('L','1','4')">L</td>
+          <td class="risk-L" onclick="showMatrix('L','1','5')">L</td>
+        </tr>
+      </table>
+    </div>
+    <div class="matrix-info" id="matrix-info">
+      👆 คลิกที่ช่องในตารางเพื่อดูความหมายและกรองภัยคุกคาม
+    </div>
+    <!-- Top threats panel — scrollable below matrix -->
+    <div style="margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">⚠️ ภัยคุกคามที่ควรจับตา</span>
+        <span id="panel-filter-tag" style="display:none;font-size:10px;color:var(--accent);background:rgba(79,142,247,.15);padding:2px 8px;border-radius:4px;cursor:pointer;" onclick="resetFilter()">× ล้างตัวกรอง</span>
+      </div>
+      <div id="top-threats-panel" style="max-height:220px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ภัยคุกคาม 34 รายการ — ของ กปอ. ปี 2569 <span id="threat-filter-label" style="font-size:11px;color:var(--accent);font-weight:400;margin-left:6px;"></span></div>
+    <table class="threat-table">
+      <tr><th>#</th><th>ภัยคุกคาม</th><th style="text-align:center">โอกาส</th><th style="text-align:center">Impact สูงสุด</th><th style="text-align:center">ระดับ</th><th>แนวทางรับมือ</th></tr>
+      <tr><td colspan="6" class="t-group-hdr" data-group="nature" style="background:rgba(99,102,241,.15);color:#818cf8;font-weight:700;font-size:11px;padding:6px 10px;letter-spacing:.5px;">🌪️ ด้านภัยธรรมชาติ</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">1</td><td>ภัยธรรมชาติ (น้ำท่วม แผ่นดินไหว ลมพายุ)</td><td style="text-align:center">4</td><td style="text-align:center">2</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">Backup ข้อมูล / Work From Home</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">2</td><td>โรคระบาด</td><td style="text-align:center">2</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ปฏิบัติตามแนวทางของสาธารณสุข</td></tr>
+      <tr class="t-row" data-risk="L"><td class="threat-num">3</td><td>โรคระบาดรุนแรงจากเรือที่เข้าท่า</td><td style="text-align:center">2</td><td style="text-align:center">1</td><td><span class="risk-badge badge-L">L</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr><td colspan="6" class="t-group-hdr" data-group="internal" style="background:rgba(79,142,247,.12);color:#93c5fd;font-weight:700;font-size:11px;padding:6px 10px;letter-spacing:.5px;">🏢 หน่วยงานภายในองค์กร</td></tr>
+      <tr class="t-row" data-risk="L"><td class="threat-num">4</td><td>เพลิงไหม้/อัคคีภัยอาคารที่ทำการ</td><td style="text-align:center">1</td><td style="text-align:center">5</td><td><span class="risk-badge badge-L">L</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">5</td><td>อุปกรณ์ IT ชำรุดไม่สามารถใช้งานได้</td><td style="text-align:center">4</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">Backup ข้อมูล / มีอุปกรณ์สำรอง</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">6</td><td>ระบบเครือข่าย กทท. ขัดข้อง (อินเตอร์เน็ต/ระบบสารสนเทศ)</td><td style="text-align:center">4</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">Backup / Help Desk ฝทส. / Pocket Wifi</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">7</td><td>Cyber Attack โจมตีผ่านระบบเครือข่าย</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ ฝทส.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">8</td><td>ข้อมูล (Data) ในระบบ IT เสียหาย</td><td style="text-align:center">2</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">Backup ข้อมูล / อุปกรณ์สำรอง</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">9</td><td>Human Error ของพนักงาน</td><td style="text-align:center">3</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ตรวจสอบตามลำดับขั้น / แบ่งปันประสบการณ์</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">10</td><td>ประท้วง/นัดหยุดงาน (พนักงานในองค์กร)</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">11</td><td>สารเคมี/สินค้าอันตรายรั่วไหล</td><td style="text-align:center">1</td><td style="text-align:center">5</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="L"><td class="threat-num">12</td><td>สาธารณูปโภคภายในอาคารบกพร่อง (น้ำ/ไฟ)</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-L">L</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">13</td><td>เครื่องจักร/อุปกรณ์มีอายุนาน ขาดการบำรุงรักษา</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">แจ้งหน่วยงานรับผิดชอบ / จัดทำแผนซ่อมบำรุงระยะยาว</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">14</td><td>บุคลากรสำคัญของหน่วยงานปฏิบัติงานไม่ได้</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">มอบหมายงานล่วงหน้า / แบ่งปันข้อมูลทุกตำแหน่ง</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">15</td><td>อุบัติเหตุจากการขนถ่ายสินค้า</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr><td colspan="6" class="t-group-hdr" data-group="external" style="background:rgba(249,115,22,.12);color:#fdba74;font-weight:700;font-size:11px;padding:6px 10px;letter-spacing:.5px;">🌐 ปัจจัยจากภายนอกองค์กร</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">16</td><td>การก่อการร้าย/วินาศกรรม</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">17</td><td>การขู่วางระเบิด</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">18</td><td>การจลาจล</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">19</td><td>การจราจรทางบกติดขัดอย่างหนัก</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ขยายเวลาการเข้าปฏิบัติงาน</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">20</td><td>เส้นทางขนส่งชำรุด / ร่องน้ำตื้นเขิน</td><td style="text-align:center">1</td><td style="text-align:center">3</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">มาตรการ กทท. / Work From Home</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">21</td><td>ประท้วงการเมืองนอกพื้นที่</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">มาตรการ กทท. / Work From Home</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">22</td><td>ชุมชนโดยรอบปิดล้อม/ปิดเส้นทางเข้าออก</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">มาตรการ กทท. / Work From Home</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">23</td><td>ประท้วง/นัดหยุดงาน (บุคลากรจ้างเหมา)</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="L"><td class="threat-num">24</td><td>ประท้วงปิดล้อมหน้าสถานที่ปฏิบัติงาน/อาคาร</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-L">L</span></td><td style="color:var(--muted)">มาตรการ กทท. / Work From Home</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">25</td><td>คู่ค้า/คู่สัญญา/ลูกค้าหลักหยุดชะงัก</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">26</td><td>ผู้ให้บริการสื่อสารคมนาคมภายนอกหยุดชะงัก</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="L"><td class="threat-num">27</td><td>สาธารณูปโภคพื้นฐานภายนอกหยุดชะงัก (ไฟฟ้า/ประปา)</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-L">L</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="L"><td class="threat-num">28</td><td>อุบัติเหตุจากเรือสินค้า (เพลิงไหม้/ชนท่า/จมขวางร่องน้ำ)</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-L">L</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="M"><td class="threat-num" style="color:var(--m);font-weight:700">29</td><td style="font-weight:600">น้ำมันขาดแคลน <span style="font-size:10px;background:rgba(234,179,8,.2);color:var(--m);padding:1px 6px;border-radius:3px;margin-left:4px;">เพิ่มปี 2569</span></td><td style="text-align:center;color:var(--m)">3</td><td style="text-align:center;color:var(--m)">3</td><td><span class="risk-badge badge-M">M</span></td><td style="color:var(--muted)">มาตรการ กทท. / Work From Home</td></tr>
+      <tr><td colspan="6" class="t-group-hdr" data-group="slow" style="background:rgba(168,85,247,.12);color:#c4b5fd;font-weight:700;font-size:11px;padding:6px 10px;letter-spacing:.5px;">🐌 ภัยคุกคามที่ค่อยๆ กัดกินองค์กรอย่างช้าๆ</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">30</td><td>ความเชื่อมั่นจากลูกค้า/คู่ค้าลดลง</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">31</td><td>ถูกต่อต้านจากชุมชน (ทำธุรกิจไม่เป็นมิตรต่อสิ่งแวดล้อม)</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">32</td><td>ไม่สามารถพัฒนาศักยภาพพนักงานให้ทัดเทียมองค์กรชั้นนำ</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">สนับสนุนให้ทุกคนในหน่วยงานเข้ารับการฝึกอบรม</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num">33</td><td>HR — พนักงานตึงเครียดสะสม ขาดแรงกระตุ้น</td><td style="text-align:center">1</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">พูดคุย แบ่งปันปัญหา รับฟัง</td></tr>
+      <tr class="t-row" data-risk="VL"><td class="threat-num" style="color:var(--h);font-weight:700">34</td><td style="font-weight:600">ฝุ่น PM 2.5 <span style="font-size:10px;background:rgba(249,115,22,.2);color:var(--h);padding:1px 6px;border-radius:3px;margin-left:4px;">เพิ่มปี 2569</span></td><td style="text-align:center;color:var(--h)">4</td><td style="text-align:center">1</td><td><span class="risk-badge badge-VL">VL</span></td><td style="color:var(--muted)">ดำเนินการตามมาตรการ กทท.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ========== BIA ========== -->
+<section id="sec-bia" class="section">
+  <div id="back-bia" class="back-btn" onclick="goBack()">← ย้อนกลับ</div>
+  <div class="page-header">
+    <div class="page-title">BIA — การวิเคราะห์ผลกระทบทางธุรกิจ</div>
+    <div class="page-sub">Business Impact Analysis | รหัสเอกสาร กทท.–TP–BIA | Version 2569-01</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4 สถานการณ์ที่ BIA ครอบคลุม</div>
+    <div class="scenario-grid">
+      <div class="scenario-card">
+        <div class="scenario-num">สถานการณ์ที่ 1</div>
+        <div class="scenario-icon">🚢</div>
+        <div class="scenario-title">การให้บริการท่าเรือหยุดชะงัก</div>
+        <div class="scenario-sub">ท่าเรือ/เครื่องจักรได้รับความเสียหาย ไม่สามารถรับ-ส่งสินค้าได้</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-num">สถานการณ์ที่ 2</div>
+        <div class="scenario-icon">🚫</div>
+        <div class="scenario-title">พนักงานเข้าทำงานไม่ได้</div>
+        <div class="scenario-sub">เหตุการณ์ภายนอก/ภัยพิบัติ ทำให้พนักงานไม่สามารถมาที่ทำงานได้</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-num">สถานการณ์ที่ 3</div>
+        <div class="scenario-icon">💻</div>
+        <div class="scenario-title">ระบบ IT ไม่สามารถใช้งานได้</div>
+        <div class="scenario-sub">ระบบสารสนเทศ ฐานข้อมูล หรือเครือข่ายล่ม</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-num">สถานการณ์ที่ 4</div>
+        <div class="scenario-icon">🦠</div>
+        <div class="scenario-title">โรคระบาดใหญ่</div>
+        <div class="scenario-sub">โรคระบาดที่กระทบพนักงานและการปฏิบัติงานในวงกว้าง</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ตัวอย่าง: CBF ตัดสินว่ากิจกรรมใดกระทบจากสถานการณ์ใด</div>
+    <div style="overflow-x:auto;">
+      <table class="scale-table" style="min-width:500px;">
+        <tr><th>CBF</th><th>สถานการณ์ 1</th><th>สถานการณ์ 2</th><th>สถานการณ์ 3</th><th>สถานการณ์ 4</th></tr>
+        <tr>
+          <td><b>รับชำระเงิน</b></td>
+          <td>✅ ไม่กระทบ</td>
+          <td style="color:var(--e)">❌ กระทบ<br><span style="font-size:10px;color:var(--muted)">ต้องใช้สถานที่</span></td>
+          <td style="color:var(--e)">❌ กระทบ<br><span style="font-size:10px;color:var(--muted)">พึ่งพา IT</span></td>
+          <td style="color:var(--m)">❓ ต้องประเมิน</td>
+        </tr>
+        <tr>
+          <td><b>ซ่อมบำรุงเครื่องจักร</b></td>
+          <td style="color:var(--e)">❌ กระทบ<br><span style="font-size:10px;color:var(--muted)">เครื่องจักรได้รับผล</span></td>
+          <td style="color:var(--e)">❌ กระทบ<br><span style="font-size:10px;color:var(--muted)">ต้องอยู่ที่ท่าเรือ</span></td>
+          <td>✅ ไม่กระทบ<br><span style="font-size:10px;color:var(--muted)">ไม่พึ่งพา IT</span></td>
+          <td style="color:var(--m)">❓ ต้องประเมิน</td>
+        </tr>
+        <tr>
+          <td><b>จัดทำตัวชี้วัด MOU</b></td>
+          <td>✅ ไม่กระทบ</td>
+          <td style="color:var(--m)">⚠️ อาจกระทบ</td>
+          <td style="color:var(--m)">⚠️ อาจกระทบ</td>
+          <td style="color:var(--m)">⚠️ อาจกระทบ</td>
+        </tr>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;">⚠️ กปอ. กิจกรรมไม่ผ่านเกณฑ์ CBF — ไม่ต้องกรอกแบบที่ 2–4</div>
+    <div style="margin-top:12px;background:rgba(234,179,8,.07);border-left:3px solid var(--m);border-radius:0 6px 6px 0;padding:10px 12px;font-size:12px;">
+      <b style="color:var(--m);">📘 เกณฑ์ผ่าน CBF จากเอกสารอบรม:</b><br>
+      <span style="color:var(--text);">CBF = งานที่ส่งผลกระทบตั้งแต่ <b>4 ด้านขึ้นไป</b> หรือเป็นงานบริการหลักของท่าเรือ เช่น บริการท่าเทียบเรือ เก็บรักษาสินค้า ตู้เย็น บริการชายฝั่ง เครื่องมือทุ่นแรง โครงสร้างพื้นฐานท่าเรือ</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ตัวชี้วัดสำคัญ — คลิกเพื่อดูนิยาม</div>
+    <div class="metric-grid">
+      <div class="metric-card" onclick="openAbbr('MTPD')">
+        <div class="metric-abbr">MTPD</div>
+        <div class="metric-full">Maximum Tolerable Period of Disruption</div>
+        <div class="metric-def">ระยะเวลาสูงสุดที่หน่วยงานยังทนต่อการหยุดชะงักได้</div>
+        <div class="metric-value">→ ถ้าเกินนี้ กระทบองค์กรรุนแรง</div>
+      </div>
+      <div class="metric-card" onclick="openAbbr('RTO')">
+        <div class="metric-abbr">RTO</div>
+        <div class="metric-full">Recovery Time Objective</div>
+        <div class="metric-def">เวลาเป้าหมายที่ต้องกู้คืนระบบ/งานให้กลับมาทำงานได้</div>
+        <div class="metric-value">→ RTO ต้องน้อยกว่า MTPD เสมอ</div>
+      </div>
+      <div class="metric-card" onclick="openAbbr('RPO')">
+        <div class="metric-abbr">RPO</div>
+        <div class="metric-full">Recovery Point Objective</div>
+        <div class="metric-def">ข้อมูลที่ยอมให้หายได้สูงสุด (ย้อนไปถึงเมื่อไหร่)</div>
+        <div class="metric-value">→ เกี่ยวกับความถี่ของ Backup</div>
+      </div>
+      <div class="metric-card" onclick="openAbbr('MAC')">
+        <div class="metric-abbr">MAC</div>
+        <div class="metric-full">Minimum Activity Criteria</div>
+        <div class="metric-def">เกณฑ์กิจกรรมขั้นต่ำที่ยังต้องคงไว้ในภาวะวิกฤต</div>
+        <div class="metric-value">→ ทรัพยากรขั้นต่ำที่จำเป็น</div>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;color:var(--muted);">
+      💡 <b style="color:var(--text)">ความสัมพันธ์:</b> RPO &lt; RTO &lt; MTPD — ยิ่ง RTO สั้น ยิ่งต้องการทรัพยากรกู้คืนมาก
+    </div>
+    <div style="margin-top:14px;background:rgba(234,179,8,.07);border-left:3px solid var(--m);border-radius:0 8px 8px 0;padding:12px 14px;">
+      <div style="font-size:10px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📘 จากเอกสารอบรม — ค่าที่ กทท. กำหนดจริง</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;">
+        <div style="font-size:12px;color:var(--text);"><b>MTPD</b> = <span style="color:var(--m);font-weight:700;">48 ชั่วโมง</span><br><span style="color:var(--muted);">กทท. กำหนดค่านี้ไว้เป็นมาตรฐาน</span></div>
+        <div style="font-size:12px;color:var(--text);"><b>RTO คำนวณ</b><br><span style="color:var(--muted);">ถ้าต้องย้ายสถานที่ → +24 ชม. (FA/IT เตรียมระบบ) + เวลาตัวเอง<br>เช่น 4 ชม. → RTO = 28 ชม.</span></div>
+        <div style="font-size:12px;color:var(--text);"><b>RPO</b><br><a href="กปอ._แบบฟอร์มการทบทวน BIA ปี 2569.pdf" target="_blank" style="display:inline-flex;align-items:center;gap:5px;margin-top:4px;color:var(--accent);text-decoration:none;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;transition:background .15s;" onmouseover="this.style.background='rgba(79,142,247,.25)'" onmouseout="this.style.background='rgba(79,142,247,.12)'">📄 ดูแบบฟอร์ม BIA (PDF) ↗</a></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4 แบบฟอร์ม BIA</div>
+    <div class="form-grid">
+      <div class="form-card">
+        <div class="form-num">แบบที่ 1</div>
+        <div class="form-title">Critical Business Function (CBF)</div>
+        <div class="form-desc">ระบุว่างานใดเป็น CBF โดยดูผลกระทบจากแต่ละ Scenario และกำหนดค่า MTPD/RTO/RPO/MAC</div>
+        <div class="form-fields">
+          <span class="field-tag" onclick="openAbbr('CBF')">CBF</span>
+          <span class="field-tag" onclick="openAbbr('MTPD')">MTPD</span>
+          <span class="field-tag" onclick="openAbbr('RTO')">RTO</span>
+          <span class="field-tag" onclick="openAbbr('RPO')">RPO</span>
+          <span class="field-tag" onclick="openAbbr('MAC')">MAC</span>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="form-num">แบบที่ 2</div>
+        <div class="form-title">Dependency (ความเชื่อมโยงของงาน)</div>
+        <div class="form-desc">ระบุว่า CBF นั้นรับงานมาจากไหน ทำเอง หรือส่งต่อที่ไหน รวมถึงช่องทางการรับ-ส่งข้อมูล</div>
+        <div class="form-fields">
+          <span class="field-tag">รับมาจากที่อื่น</span>
+          <span class="field-tag">ดำเนินการเอง</span>
+          <span class="field-tag">ส่งต่อที่อื่น</span>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="form-num">แบบที่ 3</div>
+        <div class="form-title">Minimum Resources (ทรัพยากรที่จำเป็น)</div>
+        <div class="form-desc">ระบุทรัพยากรขั้นต่ำที่ CBF ต้องใช้ในภาวะฉุกเฉิน</div>
+        <div class="form-fields">
+          <span class="field-tag">บุคลากร</span>
+          <span class="field-tag">PC/Notebook</span>
+          <span class="field-tag">โทรศัพท์</span>
+          <span class="field-tag">สถานที่</span>
+          <span class="field-tag">การเงิน</span>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="form-num">แบบที่ 4</div>
+        <div class="form-title">Vital Records (ข้อมูลสำคัญ)</div>
+        <div class="form-desc">ระบุข้อมูลสำคัญที่ CBF ต้องการ เก็บเป็น Hard Copy หรือ Soft Copy และเก็บไว้ที่ไหน</div>
+        <div class="form-fields">
+          <span class="field-tag">Hard Copy</span>
+          <span class="field-tag">Soft Copy</span>
+          <span class="field-tag">ที่เก็บรักษา</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Impact Criteria -->
+  <div class="card">
+    <div class="card-title">เกณฑ์ผลกระทบ (Impact) ทั้ง 5 ด้าน — คะแนน 5</div>
+    <table class="scale-table">
+      <tr><th>ด้าน</th><th>คะแนน 1 (ต่ำมาก)</th><th>คะแนน 5 (สูงมาก)</th></tr>
+      <tr><td><b>การปฏิบัติงาน</b></td><td style="color:var(--muted)">ไม่หยุดชะงัก</td><td style="color:var(--e)">หยุดชะงักต่อเนื่องนาน เกิน SLA</td></tr>
+      <tr><td><b>ลูกค้า</b></td><td style="color:var(--muted)">ลูกค้าใช้บริการปกติ</td><td style="color:var(--e)">ลูกค้าหยุดใช้ / ย้ายไปที่อื่น</td></tr>
+      <tr><td><b>การเงิน</b></td><td style="color:var(--muted)">ไม่สูญเสียรายได้</td><td style="color:var(--e)">สูญรายได้เฉลี่ย 3 ชม. ลูกค้าไปอื่น</td></tr>
+      <tr><td><b>ความปลอดภัย</b></td><td style="color:var(--muted)">ไม่มีปัญหาความปลอดภัย</td><td style="color:var(--e)">บุคลากร/ชุมชน/สื่อ ได้รับผลกระทบวงกว้างรุนแรง</td></tr>
+      <tr><td><b>ชื่อเสียง</b></td><td style="color:var(--muted)">ไม่มีข่าวเชิงลบ</td><td style="color:var(--e)">ข่าวลบสะสม ล้างภาพลักษณ์ไม่ได้</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ========== BCP ========== -->
+<section id="sec-bcp" class="section">
+  <div id="back-bcp" class="back-btn" onclick="goBack()">← ย้อนกลับ</div>
+  <div class="page-header">
+    <div class="page-title">BCP + Call Tree</div>
+    <div class="page-sub">Business Continuity Plan | เอกสาร กทท.–BCP–กป. Version 2569-01</div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">BCP คืออะไร ทำอะไร</div>
+      <ul class="list">
+        <li><b>จุดประสงค์</b> — เตรียมแผนรับมือล่วงหน้า ให้งานดำเนินต่อได้แม้เกิดวิกฤต</li>
+        <li><b>อ้างอิงจาก</b> — ผลการทำ RA และ BIA (CBF + ทรัพยากร)</li>
+        <li><b>ทบทวน</b> — ทุกปี อย่างน้อย 1 ครั้ง</li>
+        <li><b>เลขกำกับ</b> — 2569-01 (ต้องตรงกันทุกเอกสาร)</li>
+        <li><b>ทำลายเอกสารเก่า</b> — เมื่อมี BCP ฉบับใหม่</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Call Tree คืออะไร</div>
+      <ul class="list">
+        <li><b>Call Tree</b> — แผนผังสายการแจ้งเตือนฉุกเฉิน</li>
+        <li><b>เป้าหมาย</b> — แจ้งทุกคนที่เกี่ยวข้องให้เร็วที่สุด</li>
+        <li><b>ทดสอบ</b> — ทดสอบ Call Tree เป็นประจำ (ข้อ 8 ใน Checklist)</li>
+        <li><b>รหัสเอกสาร</b> — ทกท.-BCP-กป. (เอกสาร กปอ.)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">โครงสร้างแผน BCP — 7 องค์ประกอบ (จากเอกสารอบรม)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:14px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--accent);min-width:24px;">1</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">คณะทำงาน BCP</div><div style="font-size:11px;color:var(--muted);">ทีมหลัก ทีมสำรอง บทบาท</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--accent);min-width:24px;">2</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">ทีมประเมินความเสียหาย</div><div style="font-size:11px;color:var(--muted);">ประเมิน damage เมื่อเกิดเหตุ</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--accent);min-width:24px;">3</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">เกณฑ์ประกาศ BCP</div><div style="font-size:11px;color:var(--muted);">เงื่อนไขที่ต้องเปิดใช้แผน</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--h);min-width:24px;">4</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">การสื่อสารเหตุวิกฤต</div><div style="font-size:11px;color:var(--muted);">Crisis Communication Plan + Call Tree</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--h);min-width:24px;">5</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">การจัดตั้ง War Room</div><div style="font-size:11px;color:var(--muted);">ศูนย์บัญชาการเหตุฉุกเฉิน</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--m);min-width:24px;">6</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">กระบวนการ BCP</div><div style="font-size:11px;color:var(--muted);">ขั้นตอนดำเนินงานแต่ละ CBF</div></div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;font-weight:800;color:var(--vl);min-width:24px;">7</span>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text);">แผนฟื้นฟูสู่ภาวะปกติ</div><div style="font-size:11px;color:var(--muted);">Recovery Plan หลังวิกฤตผ่านไป</div></div>
+      </div>
+    </div>
+    <div style="background:rgba(234,179,8,.07);border-left:3px solid var(--m);border-radius:0 6px 6px 0;padding:9px 12px;font-size:12px;color:var(--text);">
+      📘 <b>นิยามจากเอกสารอบรม:</b> BCP = แผนที่ใช้ในการตอบสนองต่อ การฟื้นฟู การกลับมาดำเนินการ และการใช้กลยุทธ์การดำเนินงานของ กทท. เพื่อให้สามารถดำเนินงานได้ <b>ในระดับที่ยอมรับขั้นต่ำที่กำหนดไว้</b> ภายหลังจากการหยุดชะงัก
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ส่วนประกอบภาคผนวก BCP</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;">ภาคผนวก 1</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">ทีมปฏิบัติงาน</div>
+        <div style="font-size:11px;color:var(--muted);">รายชื่อทีมหลัก + ทีมสำรอง บทบาทและความรับผิดชอบ</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;">ภาคผนวก 2</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">ทรัพยากร/ระบบงาน</div>
+        <div style="font-size:11px;color:var(--muted);">อุปกรณ์สำคัญ ระบบ IT ที่ต้องใช้ในภาวะฉุกเฉิน</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;">ภาคผนวก 3</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">รายชื่อผู้ติดต่อภายนอก</div>
+        <div style="font-size:11px;color:var(--muted);">บริษัทต่างๆ หน่วยงานภายนอก ที่ต้องประสานงาน</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;">ส่วนหลัก</div>
+        <div style="font-size:13px;font-weight:700;margin:4px 0;">กลยุทธ์รับมือ</div>
+        <div style="font-size:11px;color:var(--muted);">ขั้นตอน CBF แต่ละงาน + ช่องทางสำรอง + Work From Home</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ปฏิทินสำคัญ BCM ประจำปี</div>
+    <table class="scale-table">
+      <tr><th>กิจกรรม</th><th>ความถี่</th><th>หมายเหตุ</th></tr>
+      <tr><td><b>ทบทวน RA</b></td><td>ปีละ 1 ครั้ง+</td><td style="color:var(--muted)">ตาม ISO 22301</td></tr>
+      <tr><td><b>ทบทวน BIA</b></td><td>ปีละ 1 ครั้ง+</td><td style="color:var(--muted)">ปรับปรุงหาก CBF เปลี่ยน</td></tr>
+      <tr><td><b>ทดสอบ Call Tree</b></td><td>เป็นประจำ</td><td style="color:var(--muted)">สร้างความตระหนัก BCM</td></tr>
+      <tr><td><b>ทดสอบแผน BCP</b></td><td>ปีละ 1 ครั้ง</td><td style="color:var(--muted)">Advance Exercise 22 มิ.ย. 2569</td></tr>
+      <tr><td><b>Internal Audit</b></td><td>ปีละ 1 ครั้ง</td><td style="color:var(--muted)">ตรวจ 27 หัวข้อ</td></tr>
+      <tr><td><b>ปรับปรุงเอกสาร BCP</b></td><td>หลังทดสอบ/IA</td><td style="color:var(--muted)">ทำลายเอกสารเก่า</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ========== CHECKLIST ========== -->
+<section id="sec-checklist" class="section">
+  <div id="back-checklist" class="back-btn" onclick="goBack()">← ย้อนกลับ</div>
+  <div class="page-header">
+    <div class="page-title">Internal Audit Checklist</div>
+    <div class="page-sub">27 หัวข้อตรวจประเมินภายใน — คลิก Checkbox เพื่อติดตามความคืบหน้า</div>
+  </div>
+
+  <div class="card" style="padding:14px 18px;background:rgba(79,142,247,.06);border-color:rgba(79,142,247,.25);">
+    <div style="font-size:12px;color:var(--muted);">💡 คลิกที่แต่ละหัวข้อเพื่อดูคำตอบ เอกสารที่ต้องแสดง และหมายเหตุจาก กปอ.</div>
+  </div>
+
+  <div id="checklist-container"></div>
+</section>
+
+</main>
+</div>
+
+<!-- Mobile Bottom Nav -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <div class="mnav-item active" onclick="show('overview');setMnav(this)"><span class="mnav-icon">🏠</span>ภาพรวม</div>
+    <div class="mnav-item" onclick="show('abbr');setMnav(this)"><span class="mnav-icon">📖</span>คำย่อ</div>
+    <div class="mnav-item" onclick="show('ra');setMnav(this)"><span class="mnav-icon">⚠️</span>RA</div>
+    <div class="mnav-item" onclick="show('bia');setMnav(this)"><span class="mnav-icon">📊</span>BIA</div>
+    <div class="mnav-item" onclick="show('bcp');setMnav(this)"><span class="mnav-icon">📋</span>BCP</div>
+    <div class="mnav-item" onclick="show('checklist');setMnav(this)"><span class="mnav-icon">✅</span>Checklist</div>
+  </div>
+</nav>
+
+<!-- Tooltip Modal -->
+<div class="tooltip-modal" id="abbrModal" onclick="closeAbbr(event)">
+  <div class="tooltip-box" onclick="event.stopPropagation()">
+    <span class="tooltip-close" onclick="closeAbbr()">✕</span>
+    <div class="tooltip-key" id="modal-key"></div>
+    <div class="tooltip-full" id="modal-full"></div>
+    <div class="tooltip-th" id="modal-th"></div>
+    <div class="tooltip-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+function setMnav(el) {
+  document.querySelectorAll('.mnav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+}
+// Navigation with history
+let navHistory = [];
+let currentPage = 'overview';
+
+function show(id) {
+  if (id !== currentPage) {
+    navHistory.push(currentPage);
+  }
+  currentPage = id;
+  _render(id);
+}
+
+function goBack() {
+  if (navHistory.length === 0) return;
+  const prev = navHistory.pop();
+  currentPage = prev;
+  _render(prev);
+}
+
+function _render(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  // show/hide back buttons
+  document.querySelectorAll('.back-btn').forEach(b => b.classList.remove('visible'));
+  if (navHistory.length > 0) {
+    const btn = document.getElementById('back-' + id);
+    if (btn) btn.classList.add('visible');
+  }
+  window.scrollTo(0, 0);
+}
+
+// Abbreviation data
+const abbrData = {
+  BCM: {
+    full: 'Business Continuity Management',
+    th: 'การบริหารความต่อเนื่องทางธุรกิจ',
+    body: 'ระบบรวมทั้งหมดของ กทท. ในการเตรียมพร้อมรับมือวิกฤต ประกอบด้วย RA + BIA + BCP + การทดสอบ + IA\n\nอ้างอิงมาตรฐาน ISO 22301 ต้องทบทวนทุกปี'
+  },
+  BCP: {
+    full: 'Business Continuity Plan',
+    th: 'แผนรองรับการดำเนินธุรกิจอย่างต่อเนื่อง',
+    body: 'เอกสารแผนที่ระบุวิธีดำเนินงานต่อได้เมื่อเกิดวิกฤต ประกอบด้วย:\n• ทีมปฏิบัติงานหลักและสำรอง\n• ขั้นตอนรับมือแต่ละ CBF\n• ทรัพยากรขั้นต่ำ\n• รายชื่อผู้ติดต่อ\n\nเลขกำกับปัจจุบัน: 2569-01'
+  },
+  BIA: {
+    full: 'Business Impact Analysis',
+    th: 'การวิเคราะห์ผลกระทบทางธุรกิจ',
+    body: 'กระบวนการระบุว่างานใดสำคัญ (CBF) และจะกระทบแค่ไหนถ้าเกิดวิกฤต\n\nมี 4 แบบฟอร์ม:\n1. CBF — ระบุงานสำคัญ + MTPD/RTO/RPO\n2. Dependency — ความเชื่อมโยง\n3. Minimum Resources — ทรัพยากรขั้นต่ำ\n4. Vital Records — ข้อมูลสำคัญ'
+  },
+  RA: {
+    full: 'Risk Analysis',
+    th: 'การวิเคราะห์ความเสี่ยง',
+    body: 'กระบวนการประเมินภัยคุกคาม 34 รายการ\n\n4 ขั้นตอน:\n1. ระบุภัยคุกคาม\n2. ให้คะแนนโอกาสเกิด (1-5)\n3. ให้คะแนนผลกระทบ 5 ด้าน (1-5)\n4. ระบุแนวทางรับมือ\n\nผลลัพธ์: VL / L / M / H / E'
+  },
+  CBF: {
+    full: 'Critical Business Function',
+    th: 'กิจกรรมทางธุรกิจที่สำคัญ',
+    body: 'งานหลักที่ถ้าหยุดชะงักแล้วจะกระทบองค์กรรุนแรง\n\nเกณฑ์ผ่าน CBF: งานนั้นต้องมีผลกระทบอย่างน้อย 1 ด้านในระดับที่กำหนด\n\nหากไม่ผ่าน CBF → ไม่ต้องกรอกแบบที่ 2-4\n\nตัวอย่าง กปอ.: จัดทำตัวชี้วัด MOU ไม่เป็น CBF'
+  },
+  RTO: {
+    full: 'Recovery Time Objective',
+    th: 'เวลาเป้าหมายในการกู้คืนระบบ/กิจกรรม',
+    body: 'เวลาสูงสุดที่ยอมรับได้ตั้งแต่เกิดเหตุจนกู้คืนงานได้\n\nตัวอย่าง:\n• RTO = 4 ชั่วโมง → ต้องกู้คืนภายใน 4 ชม.\n\nกฎ: RTO < MTPD เสมอ\nยิ่ง RTO สั้น ยิ่งต้องการทรัพยากรมาก'
+  },
+  RPO: {
+    full: 'Recovery Point Objective',
+    th: 'จุดข้อมูลเป้าหมายในการกู้คืน',
+    body: 'ข้อมูลที่ยอมให้สูญหายได้สูงสุด วัดเป็นเวลาย้อนหลัง\n\nตัวอย่าง:\n• RPO = 24 ชั่วโมง → ข้อมูลสูงสุดย้อนหลัง 1 วัน\n\nกำหนดความถี่ Backup:\nถ้า RPO = 1 ชม. → Backup ทุก 1 ชม.'
+  },
+  MTPD: {
+    full: 'Maximum Tolerable Period of Disruption',
+    th: 'ระยะเวลาสูงสุดที่ยอมรับได้ของการหยุดชะงัก',
+    body: 'ระยะเวลาสูงสุดที่หน่วยงานยังทนต่อการหยุดชะงักได้ก่อนจะเกิดความเสียหายร้ายแรง\n\nตัวอย่าง:\n• MTPD = 48 ชั่วโมง → ถ้างานหยุดเกิน 2 วัน เกิดความเสียหายรุนแรง\n\nกฎ: RTO < MTPD'
+  },
+  MAC: {
+    full: 'Minimum Activity Criteria',
+    th: 'เกณฑ์กิจกรรมขั้นต่ำที่ต้องคงไว้',
+    body: 'ระดับการทำงานขั้นต่ำที่ยังต้องรักษาไว้ได้ในภาวะฉุกเฉิน\n\nตัวอย่าง:\n• งานปกติ 100% → MAC = 30% ในภาวะวิกฤต\n\nใช้กำหนดว่าต้องการทรัพยากรขั้นต่ำเท่าไหร่ (แบบที่ 3)'
+  },
+  SLA: {
+    full: 'Service Level Agreement',
+    th: 'ข้อตกลงระดับการให้บริการกับลูกค้า',
+    body: 'ข้อตกลงที่กำหนดมาตรฐานการให้บริการ เช่น เวลาตอบสนอง ความพร้อมใช้งาน\n\nใน BIA: ถ้าหยุดชะงักเกิน SLA = ผลกระทบด้านลูกค้าระดับ 3+'
+  },
+  ISO22301: {
+    full: 'ISO 22301:2019',
+    th: 'มาตรฐานสากลระบบการบริหารความต่อเนื่องทางธุรกิจ',
+    body: 'มาตรฐาน ISO สำหรับ BCM ที่ กทท. นำมาใช้\n\nกำหนดให้:\n• ทำ RA และ BIA ทุกปี\n• มีแผน BCP และทดสอบ\n• มีการตรวจสอบภายใน (IA)\n• ปรับปรุงอย่างต่อเนื่อง'
+  },
+  CAR: {
+    full: 'Corrective Action Request',
+    th: 'คำขอดำเนินการแก้ไข',
+    body: 'ข้อบกพร่องที่ผู้ตรวจประเมินภายนอกพบ และต้องดำเนินการแก้ไข\n\nต่างจาก OFI ตรงที่ CAR เป็นเรื่องที่ "ต้องแก้" ส่วน OFI เป็นเรื่อง "ควรปรับปรุง"'
+  },
+  OFI: {
+    full: 'Opportunity For Improvement',
+    th: 'โอกาสในการปรับปรุง',
+    body: 'ข้อเสนอแนะจากผู้ตรวจว่าควรปรับปรุงอะไรเพิ่มเติม (ไม่ใช่ข้อบกพร่อง)\n\nตัวอย่างปี 2568: แนะนำให้มีการฝึกซ้อมแบบ Advance Exercise → จัดทดสอบ 22 มิ.ย. 2569'
+  },
+  กปอ: {
+    full: '—',
+    th: 'กองประเมินผลองค์กร',
+    body: 'หน่วยงานที่รับผิดชอบการประเมินผลการดำเนินงานของ กทท. ตาม MOU\n\nรหัส: กปอ.\nอยู่ภายใต้ฝ่ายกลยุทธ์องค์กร (ฝก.)'
+  },
+  กทท: {
+    full: 'Port Authority of Thailand (PAT)',
+    th: 'การท่าเรือแห่งประเทศไทย',
+    body: 'รัฐวิสาหกิจภายใต้กระทรวงคมนาคม บริหารท่าเรือ 4 แห่ง:\n• ท่าเรือกรุงเทพ (กทท.)\n• ท่าเรือแหลมฉบัง (ทลฉ.)\n• ท่าเรือพาณิชย์เชียงแสน (ทรน.)\n• ท่าเรือระนอง'
+  },
+  IA: {
+    full: 'Internal Audit',
+    th: 'การตรวจประเมินภายใน',
+    body: 'การตรวจสอบระบบ BCM ประจำปีโดยผู้ตรวจภายใน\n\nประเมิน 27 หัวข้อ ครอบคลุมตั้งแต่นโยบาย → เอกสาร → RA/BIA → BCP → การทดสอบ → การปรับปรุง\n\nผล: CAR (ต้องแก้) หรือ OFI (ข้อแนะนำ)'
+  }
+};
+
+function openAbbr(key) {
+  const d = abbrData[key];
+  if (!d) return;
+  document.getElementById('modal-key').textContent = key === 'กปอ' ? 'กปอ.' : key === 'กทท' ? 'กทท.' : key;
+  document.getElementById('modal-full').textContent = d.full;
+  document.getElementById('modal-th').textContent = d.th;
+  document.getElementById('modal-body').innerHTML = d.body.replace(/\n/g, '<br>');
+  document.getElementById('abbrModal').classList.add('show');
+}
+function closeAbbr(e) {
+  if (!e || e.target === document.getElementById('abbrModal')) {
+    document.getElementById('abbrModal').classList.remove('show');
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAbbr(); });
+
+// Matrix
+// Top threats data (sorted by level desc, then likelihood desc)
+const topThreats = [
+  { num:29, level:'M',  lik:3, imp:3, name:'น้ำมันขาดแคลน', tag:'เพิ่มปี 2569' },
+  { num:4,  level:'L',  lik:1, imp:5, name:'เพลิงไหม้/อัคคีภัยอาคาร' },
+  { num:3,  level:'L',  lik:2, imp:1, name:'โรคระบาดรุนแรงจากเรือ' },
+  { num:12, level:'L',  lik:1, imp:1, name:'สาธารณูปโภคภายในอาคารบกพร่อง' },
+  { num:24, level:'L',  lik:1, imp:1, name:'ประท้วงปิดล้อมหน้าสถานที่' },
+  { num:27, level:'L',  lik:1, imp:1, name:'สาธารณูปโภคพื้นฐานภายนอกหยุดชะงัก' },
+  { num:28, level:'L',  lik:1, imp:1, name:'อุบัติเหตุจากเรือสินค้า' },
+  { num:1,  level:'VL', lik:4, imp:2, name:'ภัยธรรมชาติ (น้ำท่วม แผ่นดินไหว ลมพายุ)' },
+  { num:5,  level:'VL', lik:4, imp:1, name:'IT ชำรุดไม่สามารถใช้งานได้' },
+  { num:6,  level:'VL', lik:4, imp:1, name:'ระบบเครือข่าย กทท. ขัดข้อง' },
+  { num:34, level:'VL', lik:4, imp:1, name:'ฝุ่น PM 2.5', tag:'เพิ่มปี 2569' },
+  { num:9,  level:'VL', lik:3, imp:1, name:'Human Error ของพนักงาน' },
+  { num:2,  level:'VL', lik:2, imp:1, name:'โรคระบาด' },
+];
+
+const levelColor = { M:'var(--m)', L:'var(--l)', VL:'var(--vl)', H:'var(--h)', E:'var(--e)' };
+const levelBg    = { M:'rgba(234,179,8,.18)', L:'rgba(132,204,22,.18)', VL:'rgba(34,197,94,.12)', H:'rgba(249,115,22,.18)', E:'rgba(239,68,68,.18)' };
+
+function renderTopThreats(filterLevel) {
+  const panel = document.getElementById('top-threats-panel');
+  if (!panel) return;
+  const tag = document.getElementById('panel-filter-tag');
+  if (tag) tag.style.display = filterLevel ? 'inline-block' : 'none';
+
+  const list = filterLevel ? topThreats.filter(t => t.level === filterLevel) : topThreats;
+  if (list.length === 0) {
+    panel.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">ไม่มีภัยคุกคามในระดับนี้<br><span style="font-size:11px;">ใน กปอ. ปี 2569</span></div>';
+    return;
+  }
+
+  // group by level when showing all
+  let html = '';
+  let lastLevel = null;
+  const levelLabel = { M:'ปานกลาง (M)', L:'ต่ำ (L)', VL:'ต่ำมาก (VL) — โอกาสเกิดสูง' };
+  list.forEach(t => {
+    if (!filterLevel && t.level !== lastLevel) {
+      lastLevel = t.level;
+      html += `<div class="panel-section-hdr" style="color:${levelColor[t.level]};background:${levelBg[t.level]};">${levelLabel[t.level]||t.level}</div>`;
+    }
+    const tagHtml = t.tag ? `<span class="top-threat-new">${t.tag}</span>` : '';
+    html += `<div class="top-threat-item" onclick="scrollToThreat(${t.num})">
+      <span class="top-threat-num">${t.num}.</span>
+      <div>
+        <div class="top-threat-name">${t.name}${tagHtml}</div>
+        <div class="top-threat-meta">โอกาส ${t.lik} × ผลกระทบ ${t.imp} &nbsp;<span class="risk-badge badge-${t.level}" style="font-size:10px;">${t.level}</span></div>
+      </div>
+    </div>`;
+  });
+  panel.innerHTML = html;
+}
+
+function scrollToThreat(num) {
+  const rows = document.querySelectorAll('.t-row');
+  for (const r of rows) {
+    const numCell = r.querySelector('.threat-num');
+    if (numCell && numCell.textContent.trim() === String(num)) {
+      r.scrollIntoView({ behavior:'smooth', block:'center' });
+      r.style.transition = 'background .2s';
+      r.style.background = 'rgba(79,142,247,.18)';
+      setTimeout(() => r.style.background = '', 1400);
+      return;
+    }
+  }
+}
+
+const matrixText = {
+  VL: 'ระดับ VL (Very Low) — ความเสี่ยงต่ำมาก ติดตามสถานการณ์ไว้ ไม่จำเป็นต้องดำเนินการเพิ่มเติม',
+  L:  'ระดับ L (Low) — ความเสี่ยงต่ำ ควรมีแผนเฝ้าระวัง แต่ยังไม่เร่งด่วน',
+  M:  'ระดับ M (Medium) — ความเสี่ยงปานกลาง ต้องมีแผนรับมือและมาตรการป้องกัน',
+  H:  'ระดับ H (High) — ความเสี่ยงสูง ต้องดำเนินการแก้ไขและป้องกันเร่งด่วน',
+  E:  'ระดับ E (Extreme) — ความเสี่ยงสูงมากที่สุด ต้องมีแผน BCP และดำเนินการทันที'
+};
+let activeLevel = null;
+function showMatrix(level, likelihood, impact) {
+  // update top threats panel
+  renderTopThreats(level);
+  // info box
+  document.getElementById('matrix-info').innerHTML =
+    `<b>โอกาสเกิด ${likelihood} × ผลกระทบ ${impact} = <span class="risk-badge badge-${level}">${level}</span></b> — ${matrixText[level]}<br><span style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">ตารางด้านล่างกรองเฉพาะภัยคุกคามระดับ <b style="color:var(--accent)">${level}</b> แล้ว — <span style="cursor:pointer;color:var(--accent);text-decoration:underline;" onclick="resetFilter()">แสดงทั้งหมด</span></span>`;
+  // highlight active cell
+  document.querySelectorAll('.matrix td').forEach(td => td.style.outline = '');
+  event.currentTarget && (event.currentTarget.style.outline = '2px solid white');
+  // filter threat table
+  activeLevel = level;
+  filterThreats(level);
+}
+function filterThreats(level) {
+  const rows = document.querySelectorAll('.t-row');
+  let counts = {};
+  rows.forEach(r => {
+    const rl = r.dataset.risk;
+    const show = !level || rl === level;
+    r.style.display = show ? '' : 'none';
+    if (show) counts[rl] = (counts[rl]||0) + 1;
+  });
+  // show/hide group headers: hide if all rows in group are hidden
+  const hdrs = document.querySelectorAll('.t-group-hdr');
+  hdrs.forEach(hdr => {
+    const hdrRow = hdr.closest('tr');
+    // get all following rows until next group header
+    let sibling = hdrRow.nextElementSibling;
+    let anyVisible = false;
+    while (sibling && !sibling.querySelector('.t-group-hdr')) {
+      if (sibling.style.display !== 'none') anyVisible = true;
+      sibling = sibling.nextElementSibling;
+    }
+    hdrRow.style.display = anyVisible ? '' : 'none';
+  });
+  const total = level ? (counts[level]||0) : 34;
+  const lbl = document.getElementById('threat-filter-label');
+  if (lbl) lbl.textContent = level ? `(กรอง: ${level} — ${total} รายการ)` : '';
+}
+function resetFilter() {
+  activeLevel = null;
+  document.querySelectorAll('.matrix td').forEach(td => td.style.outline = '');
+  document.getElementById('matrix-info').innerHTML = '👆 คลิกที่ช่องในตารางเพื่อดูความหมายและกรองภัยคุกคาม';
+  filterThreats(null);
+  const lbl = document.getElementById('threat-filter-label');
+  if (lbl) lbl.textContent = '';
+  renderTopThreats(null);
+}
+
+// PDF links — relative paths from same folder
+const docLinks = {
+  'แบบฟอร์ม RA':           'กปอ._แบบฟอร์มการทบทวน RA ปี 2569.pdf',
+  'แบบฟอร์ม RA ปี 2569':   'กปอ._แบบฟอร์มการทบทวน RA ปี 2569.pdf',
+  'แบบฟอร์ม BIA':          'กปอ._แบบฟอร์มการทบทวน BIA ปี 2569.pdf',
+  'แบบฟอร์ม BIA ปี 2569':  'กปอ._แบบฟอร์มการทบทวน BIA ปี 2569.pdf',
+  'กทท.–TP–BIA':           'กปอ._แบบฟอร์มการทบทวน BIA ปี 2569.pdf',
+  'กทท.–TP–RA':            'กปอ._แบบฟอร์มการทบทวน RA ปี 2569.pdf',
+  'Call Tree':             'ทกท. - 6240 Call Tree กองประเมินผลองค์กร (กปอ.) (ทกท.-BCP-กป.pdf',
+  'Check List':            'Check List การตรวจประเมินภายใน.pdf',
+  'ISO 22301':             '01-เอกสารการอบรม BCM ผู้บริหาร ตามมาตรฐาน ISO 22301.pdf',
+  'เอกสารอบรม':            '01-เอกสารการอบรม BCM ผู้บริหาร ตามมาตรฐาน ISO 22301.pdf',
+  'Slide':                 'Slide (26-02-2568) การบริหารความต่อเนื่องทางธุรกิจ ปี 2568.pdf',
+};
+
+// Q&A Checklist data
+const checklistData = [
+  { group: 'ภาวะผู้นำ & นโยบาย', icon: '🏛️', items: [
+    { num: 1,
+      q: 'หน่วยงานปฏิบัติตามกฎหมาย ระเบียบ ข้อบังคับที่เกี่ยวข้องหรือไม่?',
+      a: 'ตอบอ้างอิง ระเบียบบริหาร 2560 และนโยบาย BCM ของ กทท.',
+      docs: ['ระเบียบบริหาร 2560', 'นโยบาย BCM'],
+      training: 'กทท. ดำเนินการตั้งแต่ปี 2558 ตามมติ ครม. 24 เม.ย. 2555 และข้อสั่งการของกระทรวงคมนาคม รวมถึงนโยบายคณะกรรมการบริหารความเสี่ยง'
+    },
+    { num: 2,
+      q: 'หน่วยงานมีความเข้าใจขอบเขตของระบบ BCM หรือไม่?',
+      a: 'ขอบเขต BCM ของ กทท. ครอบคลุม 4 พื้นที่ 5 ท่าเรือ ได้แก่ ท่าเรือกรุงเทพ ท่าเรือแหลมฉบัง ท่าเรือพาณิชย์เชียงแสน (รวมท่าเรือเชียงของ) และท่าเรือระนอง',
+      docs: ['แผน BCP — ขอบเขต'],
+      training: 'ขอบเขตตามมาตรฐาน ISO 22301:2019 ครอบคลุม 4 พื้นที่ ซึ่ง กทท. ได้รับการรับรองมาตรฐานครั้งที่ 3 ในปี 2567'
+    },
+    { num: 3,
+      q: 'ผู้บริหารได้สื่อสารความสำคัญของระบบ BCMS ให้บุคลากรทราบหรือไม่?',
+      a: 'มีการทบทวนแผน BCP ประจำปีร่วมกันในหน่วยงาน และแจ้งให้ทุกคนในทีมรับทราบการเปลี่ยนแปลง',
+      docs: ['บันทึกการประชุม/ทบทวน BCP'],
+      training: 'ผู้บริหารต้องถ่ายทอดนโยบายและแนวทางไปยังหน่วยงานที่เกี่ยวข้อง เพื่อให้นำไปใช้เตรียมความพร้อมและตอบสนองต่อสถานการณ์ฉุกเฉิน'
+    },
+    { num: 4,
+      q: 'หน่วยงานมีนโยบาย BCM ที่เป็นปัจจุบันหรือไม่?',
+      a: 'นโยบายการบริหารความต่อเนื่องทางธุรกิจ (BCM Policy) ฉบับประกาศใช้ปี 2568 และฉบับร่างปี 2569',
+      docs: ['นโยบาย BCM ปี 2568/2569'],
+      training: 'นโยบาย BCM ของ กทท. ต้องได้รับการอนุมัติจากคณะกรรมการ และจัดทำเป็นเอกสารลายลักษณ์อักษร',
+      note: 'กปอ. ไม่มี CBF (Critical Business Function = กิจกรรมสำคัญขององค์กรที่หยุดไม่ได้) จึงไม่มีการกำหนดรายชื่อผู้รับผิดชอบหรือผู้ปฏิบัติงานในแผน BCP (Business Continuity Plan = แผนรับมือวิกฤต ระบุทีมและขั้นตอนฟื้นฟูงาน)',
+      prechecked: true
+    },
+    { num: 5,
+      q: 'มีการกำหนดบทบาทและความรับผิดชอบด้าน BCM ชัดเจนหรือไม่?',
+      a: 'โชว์รายชื่อทีมปฏิบัติงานหลักและทีมปฏิบัติงานสำรองในแผน BCP พร้อมระบุบทบาทแต่ละคน',
+      docs: ['แผน BCP — คณะทำงาน (ส่วนที่ 1)'],
+      training: 'โครงสร้างคณะทำงาน BCP ประกอบด้วย คณะกรรมการ คณะอนุกรรมการ และคณะทำงาน พร้อมบทบาทหน้าที่และความรับผิดชอบชัดเจน',
+      note: 'กปอ. ไม่มี CBF (กิจกรรมสำคัญขององค์กรที่หยุดไม่ได้) จึงไม่มีการกำหนดรายชื่อผู้รับผิดชอบหรือผู้ปฏิบัติงานในแผน BCP (แผนรับมือวิกฤต)',
+      prechecked: true
+    },
+    { num: 6,
+      q: 'มีการมอบหมายหน้าที่รับผิดชอบด้าน BCM ให้บุคคลที่เหมาะสมหรือไม่?',
+      a: 'โชว์รายชื่อทีมปฏิบัติงานหลักและทีมปฏิบัติงานสำรองในแผน BCP ว่าแต่ละคนรับผิดชอบอะไร',
+      docs: ['แผน BCP — คณะทำงาน (ส่วนที่ 1)']
+    },
+  ]},
+  { group: 'ความสามารถ & ความตระหนัก', icon: '🎓', items: [
+    { num: 7,
+      q: 'บุคลากรที่เกี่ยวข้องมีความรู้และความสามารถด้าน BCM เพียงพอหรือไม่?',
+      a: 'แสดงเอกสารประเมินผล / ประวัติการทำงาน / ใบรับรองการอบรม / Job Description (JD)',
+      docs: ['ใบรับรองอบรม', 'JD / ประวัติงาน'],
+      training: 'กทท. จัดฝึกอบรม 5 หลักสูตร ได้แก่ (1) สร้างความตระหนักรู้ BCM (2) BIA และ RA (3) ซ้อมแผน BCP (4) ระบบสำรอง (5) แผนจัดการอุบัติการณ์ (IMP) และ BCP',
+      note: 'กปอ. มีการอบรมหลักสูตรที่เกี่ยวข้องกับการทำงานอยู่เป็นประจำทุกปี',
+      prechecked: true
+    },
+    { num: 8,
+      q: 'มีการสร้างความตระหนักรู้ด้าน BCM ให้บุคลากรในหน่วยงานอย่างสม่ำเสมอหรือไม่?',
+      a: 'มีการทดสอบ Call Tree เป็นประจำ เพื่อให้ทุกคนรู้ขั้นตอนการแจ้งเตือน',
+      docs: ['บันทึกการทดสอบ Call Tree'],
+      training: 'การทดสอบ Call Tree เป็นส่วนหนึ่งของการสร้างความตระหนัก BCM — ทุกคนต้องรู้ว่าเมื่อเกิดเหตุต้องโทรหาใคร'
+    },
+    { num: 9,
+      q: 'มีการสื่อสารเรื่อง BCM ทั้งภายในและภายนอกองค์กรอย่างเหมาะสมหรือไม่?',
+      a: 'มีการทบทวนแผน BCP ประจำปีร่วมกันในหน่วยงาน และมีแผนการติดต่อสื่อสาร (Crisis Communication Plan)',
+      docs: ['บันทึกการประชุม BCP', 'Crisis Communication Plan'],
+      training: 'แผน Crisis Communication Plan เป็น 1 ใน 7 องค์ประกอบของ BCP — ระบุช่องทางและผู้รับผิดชอบการสื่อสารในภาวะวิกฤต'
+    },
+  ]},
+  { group: 'การควบคุมเอกสาร', icon: '📁', items: [
+    { num: 10,
+      q: 'มีเอกสารครบถ้วนในระบบ BCMS หรือไม่?',
+      a: 'โชว์แผน BCP + แบบฟอร์ม RA + แบบฟอร์ม BIA + Call Tree ทั้งหมด',
+      docs: ['แผน BCP (2569-01)', 'แบบฟอร์ม RA', 'แบบฟอร์ม BIA', 'Call Tree'],
+      note: 'เตรียมเปิดแฟ้มเอกสารที่เก็บไว้ — ปี 2569 แบบฟอร์ม RA ของ กปอ. มีการเพิ่มปัจจัยเรื่อง "น้ำมัน" เข้ามาพิจารณาเป็นภัยคุกคามใหม่',
+      prechecked: true
+    },
+    { num: 11,
+      q: 'มีการควบคุมเอกสาร (Document Control) ตามข้อกำหนดหรือไม่?',
+      a: 'ตอบว่าเลขกำกับเอกสารในแผน BCP คือ 2569-01',
+      docs: ['แผน BCP — เลขกำกับ 2569-01'],
+      training: 'เลขกำกับ (Version) ต้องตรงกันทุกเอกสารในปีนั้น — ถ้ามีฉบับใหม่ต้องทำลายของเก่าทิ้ง'
+    },
+    { num: 12,
+      q: 'มีกระบวนการแก้ไขและจัดเก็บเอกสารที่เหมาะสมหรือไม่?',
+      a: 'เลขกำกับ 2569-01 / ทบทวนทุกปีเพื่อปรับปรุงให้เป็นปัจจุบัน / ถ้ามี BCP ฉบับใหม่ให้ทำลายเอกสารเก่าทิ้ง',
+      docs: ['แผน BCP ฉบับล่าสุด'],
+      note: 'คำสำคัญที่ต้องจำ: <strong style="color:#f0f0f0;font-size:14px;">แผน BCP 2569-01</strong> — เลขนี้ต้องตรงกันทุกเอกสารในระบบ',
+      prechecked: true
+    },
+    { num: 13,
+      q: 'มีการควบคุม Outsource ที่มีผลต่อ BCM หรือไม่? (ถ้ามี)',
+      a: 'ไม่มีการจ้าง Outsource ในการปฏิบัติงานหลัก',
+      docs: ['ระบุ N/A หากไม่มี Outsource']
+    },
+  ]},
+  { group: 'การวิเคราะห์ความเสี่ยง & ผลกระทบ', icon: '🔍', items: [
+    { num: 14,
+      q: 'มีการประเมินความเสี่ยง (RA) ที่เป็นปัจจุบันและครบถ้วนหรือไม่?',
+      a: 'โชว์แบบฟอร์ม RA ฉบับล่าสุด ในหัวข้อแนวทางการดำเนินการ ตอบว่ามีการอ้างอิงจากคำสั่ง กทท. หรือมาตรการตามที่ระบุไว้ใน RA',
+      docs: ['แบบฟอร์ม RA ปี 2569 (กทท.–TP–RA)'],
+      training: 'RA ต้องวิเคราะห์ภัยคุกคาม (Threats) ที่อาจก่อให้เกิดการหยุดชะงัก → ให้คะแนน Likelihood × Impact → สรุปเป็น Key Disaster Scenario สำหรับทำ BCP',
+      note: 'กปอ. ดำเนินการตามมาตรการของ กทท. — ในแบบฟอร์ม RA ให้ระบุว่า "ดำเนินการตามมาตรการของ กทท." ในคอลัมน์แนวทางการดำเนินการ',
+      prechecked: true
+    },
+    { num: 15,
+      q: 'มีการวิเคราะห์ผลกระทบทางธุรกิจ (BIA) ที่เป็นปัจจุบันหรือไม่?',
+      a: 'โชว์แบบฟอร์ม BIA ฉบับล่าสุด ตรวจสอบว่ามีการระบุ RTO / RPO / MTPD ครบทุก CBF',
+      docs: ['แบบฟอร์ม BIA ปี 2569 (กทท.–TP–BIA)'],
+      training: 'MTPD ของ กทท. = 48 ชั่วโมง | RTO ต้องน้อยกว่า MTPD เสมอ | ถ้าต้องย้ายสถานที่ปฏิบัติงาน ให้บวก 24 ชม. (FA/IT เตรียมระบบ) เข้าไปในค่า RTO',
+      note: 'กปอ. ไม่มีการวิเคราะห์ BIA เพราะ BIA จะทำได้ต่อเมื่อมี CBF เท่านั้น — CBF คือกิจกรรมสำคัญที่หยุดไม่ได้ขององค์กร เช่น งานด้าน Operation, Financial และ IT ซึ่งกิจกรรมของ กปอ. ไม่อยู่ในกลุ่มนี้',
+      prechecked: true
+    },
+  ]},
+  { group: 'การจัดทำแผน BCP', icon: '📋', items: [
+    { num: 16,
+      q: 'มีการกำหนดทรัพยากรที่จำเป็นสำหรับการดำเนินงานต่อเนื่องหรือไม่?',
+      a: 'ดูได้จากภาคผนวก 2 ของ BCP ที่ระบุทรัพยากร / ระบบงาน / อุปกรณ์สำคัญ',
+      docs: ['BCP ภาคผนวก 2 — ทรัพยากร/ระบบงาน/อุปกรณ์']
+    },
+    { num: 17,
+      q: 'มีการกำหนดกลยุทธ์ความต่อเนื่องทางธุรกิจที่เหมาะสมหรือไม่?',
+      a: 'โชว์แผน BCP ของหน่วยงานตัวเอง ซึ่งระบุกลยุทธ์รับมือสำหรับแต่ละ CBF',
+      docs: ['แผน BCP — กลยุทธ์รับมือ'],
+      training: 'กลยุทธ์รับมือ (Recovery Strategy) เป็นขั้นที่ 4 ใน 7 ขั้นตอนของ BCM Framework — กำหนดทางเลือกสำรองให้งานดำเนินต่อได้'
+    },
+    { num: 18,
+      q: 'มีการจัดทำแผน BCP ที่ครบถ้วนและอนุมัติแล้วหรือไม่?',
+      a: 'โชว์แผน BCP ฉบับล่าสุด 2569-01 ที่ได้รับการอนุมัติแล้ว',
+      docs: ['แผน BCP ฉบับ 2569-01'],
+      training: 'BCP = แผนที่ใช้ตอบสนองต่อวิกฤต ฟื้นฟู และกลับมาดำเนินการ เพื่อให้ กทท. สามารถทำงานได้ในระดับที่ยอมรับขั้นต่ำหลังเกิดการหยุดชะงัก'
+    },
+    { num: 19,
+      q: 'มีการระบุผู้รับผิดชอบในแผน BCP อย่างชัดเจนหรือไม่?',
+      a: 'โชว์รายชื่อทีมปฏิบัติงานหลักและทีมปฏิบัติงานสำรองในแผน BCP',
+      docs: ['BCP — รายชื่อทีมหลัก/สำรอง']
+    },
+    { num: 20,
+      q: 'มีการเตรียมบุคลากรสำรองและผ่านการฝึกอบรมหรือไม่?',
+      a: 'โชว์ทีมปฏิบัติงานสำรองในแผน BCP + ใบรับรองการอบรมของทีมสำรอง',
+      docs: ['BCP — ทีมสำรอง', 'ใบรับรองการอบรม'],
+      training: 'ทีมสำรองต้องผ่านการอบรมอย่างน้อยหลักสูตร (1) สร้างความตระหนัก BCM และ (3) ซ้อมแผน BCP'
+    },
+    { num: 21,
+      q: 'มีการกำหนดช่องทางการสื่อสารกับหน่วยงานภายนอกในภาวะวิกฤตหรือไม่?',
+      a: 'โชว์รายชื่อการติดต่อผู้เกี่ยวข้องภายนอก บริษัทต่างๆ จาก BCP ภาคผนวก 3 หรือรายชื่ออื่นที่หน่วยงานจัดทำ',
+      docs: ['BCP ภาคผนวก 3 — ผู้ติดต่อภายนอก'],
+      training: 'Crisis Communication Plan เป็น 1 ใน 7 องค์ประกอบหลักของ BCP — ระบุผู้รับผิดชอบสื่อสารและช่องทางทุกกรณี'
+    },
+    { num: 22,
+      q: 'แผน BCP ของหน่วยงานมีความครบถ้วนตามข้อกำหนดหรือไม่?',
+      a: 'โชว์แผน BCP ของหน่วยงานให้ผู้ตรวจเห็นครบทั้ง 7 องค์ประกอบ',
+      docs: ['แผน BCP ฉบับสมบูรณ์ 2569-01'],
+      training: 'ตรวจสอบว่า BCP มีครบ 7 ส่วน: คณะทำงาน → ทีมประเมินความเสียหาย → เกณฑ์ประกาศ → Crisis Comm → War Room → กระบวนการ BCP → แผนฟื้นฟู'
+    },
+  ]},
+  { group: 'การทดสอบ ฝึกซ้อม & การปรับปรุง', icon: '🔄', items: [
+    { num: 23,
+      q: 'มีการทดสอบและฝึกซ้อมแผน BCP อย่างสม่ำเสมอหรือไม่?',
+      a: 'ไม่เป็นไร เพราะทดสอบและ IA อาจารย์เข้าใจ — อ้างอิง Advance Exercise วันจันทร์ที่ 22 มิถุนายน 2569',
+      docs: ['รายงานผลการทดสอบ BCP 2569'],
+      training: 'กทท. ดำเนินการทดสอบทุกปีอย่างเป็นระบบ ปี 2568 ทำแล้ว และปัจจุบันอยู่ระหว่างการทบทวนปี 2569 — รูปแบบ: Table Top Exercise + Advance Exercise'
+    },
+    { num: 24,
+      q: 'มีการปรับปรุงเอกสารและกระบวนการ BCM อย่างต่อเนื่องหรือไม่?',
+      a: 'แผน BCP ของหน่วยงานจะมีการทบทวนเป็นประจำทุกปี เพื่อปรับปรุงให้เป็นปัจจุบัน หากมีการประกาศใช้ BCP ฉบับใหม่ ให้ทำลายเอกสารเก่าทิ้ง',
+      docs: ['แผน BCP เวอร์ชันปัจจุบัน']
+    },
+    { num: 25,
+      q: 'มีการดำเนินการตรวจสอบภายใน (Internal Audit) ประจำปีหรือไม่?',
+      a: 'มีการดำเนินการ Internal Audit ประจำปีงบประมาณ 2569 และหน่วยงานได้รับการ Internal Audit ทุกปี',
+      docs: ['รายงาน IA ปี 2569'],
+      training: 'ตัวอย่างปี 2568 — กทท. ดำเนินการ IA ทุกปีอย่างเป็นระบบ ผลจาก IA นำไปสู่การออก CAR หรือ OFI เพื่อปรับปรุงระบบ BCM'
+    },
+    { num: 26,
+      q: 'มีการดำเนินการแก้ไข (CAR) และนำข้อเสนอแนะ (OFI) ไปปรับปรุงหรือไม่?',
+      a: 'กทท. ได้รับข้อเสนอแนะจากผู้ตรวจประเมินภายนอกปี 2568 ให้มีการฝึกซ้อมแบบปฏิบัติจริง → จึงจัดการทดสอบแบบ Advance Exercise วันที่ 22 มิถุนายน 2569',
+      docs: ['รายงาน CAR/OFI ปี 2568', 'แผนทดสอบ 22 มิ.ย. 2569'],
+      training: 'Surveillance = การตรวจประจำปีโดยผู้ตรวจภายนอก (URS) หลังได้รับ ISO 22301 เพื่อยืนยันว่ายังคงรักษามาตรฐานอย่างต่อเนื่อง'
+    },
+    { num: 27,
+      q: 'มีการพัฒนาและปรับปรุงระบบ BCM อย่างต่อเนื่อง (Continual Improvement) หรือไม่?',
+      a: 'หน่วยงานมีการฝึกซ้อมและทดสอบแผน BCP ประจำปี มีการประชุมสรุปผล รวมถึงการปรับปรุงแผน BCP หลังการทดสอบเพื่อให้มีความเป็นปัจจุบันและมีประสิทธิภาพมากขึ้น',
+      docs: ['รายงานผล + บันทึกปรับปรุงแผน'],
+      training: 'หัวข้อการปรับปรุงระบบ BCM ของ กทท. 5 ด้าน: (1) กำหนด Framework สอดคล้อง scenario (2) กำหนดผู้มีส่วนได้ส่วนเสีย (3) ปรับ BIA เพิ่ม MTPD ระดับ CBF (4) เพิ่ม RA เน้นมาตรการป้องกัน (5) ซ้อม BCP แบบ Table Top + Advance Exercise บูรณาการกับ IT'
+    },
+  ]}
+];
+
+// Build Q&A checklist
+function toggleQA(id) {
+  const item = document.getElementById('qa-' + id);
+  item.classList.toggle('open');
+}
+
+const container = document.getElementById('checklist-container');
+let itemNum = 0;
+checklistData.forEach(group => {
+  const wrap = document.createElement('div');
+  wrap.className = 'cl-group';
+  wrap.innerHTML = `<div class="cl-group-header"><span class="cl-group-icon">${group.icon}</span>${group.group}<span class="cl-group-count" id="gc-${group.group.replace(/\s/g,'')}">0 / ${group.items.length}</span></div>`;
+  group.items.forEach(item => {
+    itemNum++;
+    const div = document.createElement('div');
+    div.className = 'qa-item';
+    div.id = 'qa-' + item.num;
+    let docsHtml = '';
+    if (item.docs && item.docs.length) {
+      const docHTML = item.docs.map(d => {
+        const link = docLinks[d] || docLinks[Object.keys(docLinks).find(k => d.includes(k)) || ''];
+        if (link) return `<a class="qa-doc-link" href="${link}" target="_blank">📄 ${d} ↗</a>`;
+        return `<span class="qa-doc">${d}</span>`;
+      }).join('');
+      docsHtml = `<div class="qa-block"><div class="qa-block-label" style="color:var(--muted);">📄 เอกสารที่ต้องแสดง</div><div class="qa-docs">${docHTML}</div></div>`;
+    }
+    let trainingHtml = '';
+    if (item.training) {
+      trainingHtml = `<div class="qa-block"><div class="qa-block-label" style="color:var(--m);">💡 จากเอกสารอบรม</div><div class="qa-training">${item.training}</div></div>`;
+    }
+    let noteHtml = '';
+    if (item.note) {
+      noteHtml = `<div class="qa-block"><div class="qa-block-label" style="color:var(--vl);">📌 กปอ. — บันทึกเพิ่มเติม</div><div class="qa-note">${item.note}</div></div>`;
+    }
+    div.innerHTML = `
+      <div class="qa-header" onclick="toggleQA(${item.num})">
+
+        <span class="qa-num">${String(item.num).padStart(2,'0')}</span>
+        <span class="qa-question">${item.q}</span>
+
+        <span class="qa-arrow">›</span>
+      </div>
+      <div class="qa-body">
+        <div class="qa-block">
+          <div class="qa-block-label" style="color:var(--accent);">✏️ คำตอบ / หลักฐาน</div>
+          <div class="qa-answer">${item.a}</div>
+        </div>
+        ${docsHtml}
+        ${trainingHtml}
+        ${noteHtml}
+      </div>`;
+    wrap.appendChild(div);
+  });
+  container.appendChild(wrap);
+});
+
+// init top threats panel
+renderTopThreats(null);
+</script>
+</body>
+</html>
